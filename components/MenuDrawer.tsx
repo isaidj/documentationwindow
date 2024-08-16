@@ -2,23 +2,29 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { DocumentItem, ResponseData } from "@/types/InterfaceMenuStructure";
 import { ChevronDown, FileText } from "lucide-react";
+import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
 
 interface MenuDrawerProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   menuWidth: number;
+  path: string;
 }
 
-const MenuItemComponent: React.FC<{ item: DocumentItem; depth: number }> = ({
-  item,
-  depth,
-}) => {
+const MenuItemComponent: React.FC<{
+  item: DocumentItem;
+  depth: number;
+  path: string;
+}> = ({ item, depth, path }) => {
   const [isOpen, setIsOpen] = useState(false);
+  console.log(path);
 
   return (
     <div className="mb-1">
       <div
-        className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer rounded transition-colors duration-200 ease-in-out`}
+        className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer rounded transition-colors duration-200 ease-in-out ${
+          path === item.title ? "bg-blue-200" : ""
+        }`}
         style={{ paddingLeft: `${(depth + 1) * 0.5}rem` }}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -48,7 +54,12 @@ const MenuItemComponent: React.FC<{ item: DocumentItem; depth: number }> = ({
         }`}
       >
         {item.children.map((child) => (
-          <MenuItemComponent key={child.id} item={child} depth={depth + 1} />
+          <MenuItemComponent
+            key={child.id}
+            item={child}
+            depth={depth + 1}
+            path={path}
+          />
         ))}
       </div>
     </div>
@@ -88,6 +99,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
+  const { pathname } = useDocumentationDrawer();
 
   const fetchMenu = async () => {
     setLoading(true);
@@ -124,7 +136,12 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({
         <div className="p-4">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Menu</h2>
           {menuContent.map((item) => (
-            <MenuItemComponent key={item.id} item={item} depth={0} />
+            <MenuItemComponent
+              key={item.id}
+              item={item}
+              depth={0}
+              path={pathname}
+            />
           ))}
         </div>
       )}

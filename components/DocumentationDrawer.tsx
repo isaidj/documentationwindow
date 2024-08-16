@@ -16,20 +16,17 @@ import { Resizer } from "./Resizer";
 import { SkeletonMarkdown } from "./SkeletonMarkdown";
 import MarkdownVisualizer from "./MarkdownVisualizer";
 import axios from "axios";
-import path from "path";
+
 import MenuDrawer from "./MenuDrawer";
 import { useDebounce } from "use-debounce";
+import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
 
 const DocumentationDrawer: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
+  const { isOpen, setIsOpen, pathname } = useDocumentationDrawer();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchTermDebounced] = useDebounce(searchTerm, 500);
   const [documentationContent, setDocumentationContent] = useState("");
   const [loading, setLoading] = useState(false);
-  let pathname = usePathname();
-  pathname = path.basename(pathname);
-
   const menuWidth = 256;
 
   const {

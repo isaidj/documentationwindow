@@ -1,5 +1,6 @@
 "use client";
 import DocumentationDrawer from "@/components/DocumentationDrawer";
+import DocumentationDrawerProvider from "@/context/DocumentationDrawerContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -53,7 +54,9 @@ const layout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
         </ul>
       </nav>
       {children}
-      <DocumentationDrawer />
+      <DocumentationDrawerProvider>
+        <DocumentationDrawer />
+      </DocumentationDrawerProvider>
     </div>
   );
 };
