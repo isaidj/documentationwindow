@@ -20,6 +20,7 @@ import axios from "axios";
 import MenuDrawer from "./MenuDrawer";
 import { useDebounce } from "use-debounce";
 import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
+import RelatedDocumentation from "./RelatedDocumentation";
 
 const DocumentationDrawer: React.FC = () => {
   const { isOpen, setIsOpen, pathname } = useDocumentationDrawer();
@@ -59,7 +60,15 @@ const DocumentationDrawer: React.FC = () => {
 
   useEffect(() => {
     if (isOpen) {
+      if (!pathname) {
+        setDocumentationContent("## No se ha seleccionado documentacion");
+        return;
+      }
       fetchOutlineDocumentation().then((data) => {
+        if (data.error) {
+          setDocumentationContent("## No se encontró documentación");
+          return;
+        }
         setDocumentationContent(data.data);
       });
     }
@@ -77,6 +86,7 @@ const DocumentationDrawer: React.FC = () => {
           },
         }
       );
+
       return response.data;
     } catch (error) {
       console.error("Error loading documentation:", error);
@@ -179,6 +189,7 @@ const DocumentationDrawer: React.FC = () => {
               )}
             </div>
           </div>
+          {/* <RelatedDocumentation idDocument={pathname} /> */}
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+"use client";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { DocumentItem, ResponseData } from "@/types/InterfaceMenuStructure";
 import { ChevronDown, FileText } from "lucide-react";
@@ -8,31 +9,32 @@ interface MenuDrawerProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   menuWidth: number;
-  path: string;
 }
 
 const MenuItemComponent: React.FC<{
   item: DocumentItem;
   depth: number;
-  path: string;
-}> = ({ item, depth, path }) => {
+}> = React.memo(({ item, depth }) => {
   const [isOpen, setIsOpen] = useState(false);
-  console.log(path);
+  const { pathname } = useDocumentationDrawer();
+
+  const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), []);
 
   return (
-    <div className="mb-1">
+    <div className=" ">
       <div
-        className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer rounded transition-colors duration-200 ease-in-out ${
-          path === item.title ? "bg-blue-200" : ""
+        className={`flex relative items-center justify-between p-2 pl-0 hover:bg-gray-200 cursor-pointer rounded transition-colors duration-200 ease-in-out ${
+          pathname === item.title ? "bg-blue-200" : ""
         }`}
         style={{ paddingLeft: `${(depth + 1) * 0.5}rem` }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleOpen}
       >
+        {/* <div className=" absolute border-l-[1px] border-cyan-700 h-full"></div> */}
         <div className="flex items-center flex-grow">
-          <div className="w-6 flex justify-center mr-2">
+          <div className="w-6 flex justify-center ml-1">
             <FileText size={18} className="text-gray-600" />
           </div>
-          <span className="text-sm font-medium text-gray-700 truncate">
+          <span className="text-sm font-medium text-gray-700 truncate ">
             {item.title}
           </span>
         </div>
@@ -54,18 +56,13 @@ const MenuItemComponent: React.FC<{
         }`}
       >
         {item.children.map((child) => (
-          <MenuItemComponent
-            key={child.id}
-            item={child}
-            depth={depth + 1}
-            path={path}
-          />
+          <MenuItemComponent key={child.id} item={child} depth={depth + 1} />
         ))}
       </div>
     </div>
   );
-};
-
+});
+MenuItemComponent.displayName = "MenuItemComponent";
 const SkeletonLoader: React.FC = () => {
   return (
     <div className="p-4">
@@ -92,61 +89,54 @@ const SkeletonLoader: React.FC = () => {
   );
 };
 
-const MenuDrawer: React.FC<MenuDrawerProps> = ({
-  isOpen,
-  setIsOpen,
-  menuWidth,
-}) => {
-  const [loading, setLoading] = useState(false);
-  const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
-  const { pathname } = useDocumentationDrawer();
+const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
+  ({ isOpen, setIsOpen, menuWidth }) => {
+    const [loading, setLoading] = useState(false);
+    const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
 
-  const fetchMenu = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.post<ResponseData>(
-        "http://localhost:3000/api/documentation/collections-documents"
-      );
-      const data = response.data;
-      setMenuContent(data.data);
-    } catch (error) {
-      console.error("Error loading menu:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchMenu = useCallback(async () => {
+      setLoading(true);
+      try {
+        const response = await axios.post<ResponseData>(
+          "http://localhost:3000/api/documentation/collections-documents"
+        );
+        const data = response.data;
+        setMenuContent(data.data);
+      } catch (error) {
+        console.error("Error loading menu:", error);
+        setMenuContent([]);
+      } finally {
+        setLoading(false);
+      }
+    }, []);
 
-  useEffect(() => {
-    if (isOpen && menuContent.length === 0) {
-      fetchMenu();
-    }
-  }, [isOpen]);
+    useEffect(() => {
+      if (isOpen && menuContent.length === 0) {
+        fetchMenu();
+      }
+    }, [isOpen, menuContent.length, fetchMenu]);
 
-  return (
-    <div
-      className={`relative z-30 h-full bg-white shadow-lg transition-all duration-300 ease-in-out overflow-y-auto`}
-      style={{
-        width: isOpen ? `${menuWidth}px` : "0",
-        minWidth: isOpen ? `${menuWidth}px` : "0",
-      }}
-    >
-      {loading ? (
-        <SkeletonLoader />
-      ) : (
-        <div className="p-4">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Menu</h2>
-          {menuContent.map((item) => (
-            <MenuItemComponent
-              key={item.id}
-              item={item}
-              depth={0}
-              path={pathname}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+    return (
+      <div
+        className={`relative z-30 h-full bg-white shadow-lg transition-all duration-300 ease-in-out overflow-y-auto`}
+        style={{
+          width: isOpen ? `${menuWidth}px` : "0",
+          minWidth: isOpen ? `${menuWidth}px` : "0",
+        }}
+      >
+        {loading ? (
+          <SkeletonLoader />
+        ) : (
+          <div className="p-4">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Menu</h2>
+            {menuContent.map((item) => (
+              <MenuItemComponent key={item.id} item={item} depth={0} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+MenuDrawer.displayName = "MenuDrawer";
 export default MenuDrawer;

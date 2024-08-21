@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 interface DocumentationDrawerContextType {
   pathname: string;
   isOpen: boolean;
-  setIsOpen: (value: boolean) => void;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const DocumentationDrawerContext = createContext<

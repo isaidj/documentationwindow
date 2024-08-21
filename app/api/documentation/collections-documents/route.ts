@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 const API_KEY_GETOUTLINE = process.env.API_KEY_GETOUTLINE;
+const ID_COLLECTIONS_DOCUMENTS = process.env.ID_COLLECTIONS_DOCUMENTS;
 export async function POST() {
   try {
     const response = await fetch(
@@ -11,10 +12,11 @@ export async function POST() {
           Authorization: `Bearer ${API_KEY_GETOUTLINE}`,
         },
         body: JSON.stringify({
-          id: "4909f793-de58-4c5c-a72d-f611df794e84",
+          id: ID_COLLECTIONS_DOCUMENTS,
         }),
       }
     );
+    console.log(response);
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {

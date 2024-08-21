@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
@@ -62,69 +62,89 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
     );
   };
 
-  const customComponents = {
-    h1: ({ children, ...props }: CustomComponentProps) => (
-      <h1 className="text-2xl font-bold mb-4" {...props}>
-        {highlightText(children)}
-      </h1>
-    ),
-    h2: ({ children, ...props }: CustomComponentProps) => (
-      <h2 className="text-xl font-semibold mb-3" {...props}>
-        {highlightText(children)}
-      </h2>
-    ),
-    h3: ({ children, ...props }: CustomComponentProps) => (
-      <h3 className="text-lg font-medium mb-2" {...props}>
-        {highlightText(children)}
-      </h3>
-    ),
-    p: ({ children, ...props }: CustomComponentProps) => (
-      <p className="mb-4" {...props}>
-        {highlightText(children)}
-      </p>
-    ),
-    ul: ({ children, ...props }: CustomComponentProps) => (
-      <ul className="list-disc pl-5 mb-4" {...props}>
-        {children}
-      </ul>
-    ),
-    ol: ({ children, ...props }: CustomComponentProps) => (
-      <ol className="list-decimal pl-5 mb-4" {...props}>
-        {children}
-      </ol>
-    ),
-    li: ({ children, ...props }: CustomComponentProps) => (
-      <li className="mb-1" {...props}>
-        {highlightText(children)}
-      </li>
-    ),
-    a: ({ children, ...props }: CustomComponentProps) => (
-      <a className="text-blue-600 hover:underline" {...props}>
-        {highlightText(children)}
-      </a>
-    ),
-    blockquote: ({ children, ...props }: CustomComponentProps) => (
-      <blockquote
-        className="border-l-4 border-gray-300 pl-4 italic my-4"
-        {...props}
-      >
-        {highlightText(children)}
-      </blockquote>
-    ),
-    pre: ({ children, ...props }: CustomComponentProps) => (
-      <code
-        className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap"
-        {...props}
-      >
-        {highlightText(children)}
-      </code>
-    ),
-    strong: ({ children, ...props }: CustomComponentProps) => (
-      <strong className="font-semibold" {...props}>
-        {highlightText(children)}
-      </strong>
-    ),
-  };
+  const customComponents = useMemo(
+    () => ({
+      h1: ({ children, ...props }: CustomComponentProps) => (
+        <h1 className="text-2xl font-bold mb-4" {...props}>
+          {highlightText(children)}
+        </h1>
+      ),
+      h2: ({ children, ...props }: CustomComponentProps) => (
+        <h2 className="text-xl font-semibold mb-3" {...props}>
+          {highlightText(children)}
+        </h2>
+      ),
+      h3: ({ children, ...props }: CustomComponentProps) => (
+        <h3 className="text-lg font-medium mb-2" {...props}>
+          {highlightText(children)}
+        </h3>
+      ),
+      p: ({ children, ...props }: CustomComponentProps) => (
+        <p className="mb-4" {...props}>
+          {highlightText(children)}
+        </p>
+      ),
+      ul: ({ children, ...props }: CustomComponentProps) => (
+        <ul className="list-disc pl-5 mb-4" {...props}>
+          {children}
+        </ul>
+      ),
+      ol: ({ children, ...props }: CustomComponentProps) => (
+        <ol className="list-decimal pl-5 mb-4" {...props}>
+          {children}
+        </ol>
+      ),
+      li: ({ children, ...props }: CustomComponentProps) => (
+        <li className="mb-1" {...props}>
+          {highlightText(children)}
+        </li>
+      ),
+      blockquote: ({ children, ...props }: CustomComponentProps) => (
+        <blockquote
+          className="border-l-4 border-gray-300 pl-4 italic my-4"
+          {...props}
+        >
+          {highlightText(children)}
+        </blockquote>
+      ),
+      pre: ({ children, ...props }: CustomComponentProps) => (
+        <code
+          className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap"
+          {...props}
+        >
+          {highlightText(children)}
+        </code>
+      ),
+      strong: ({ children, ...props }: CustomComponentProps) => (
+        <strong className="font-semibold" {...props}>
+          {highlightText(children)}
+        </strong>
+      ),
+      img: ({ src, alt, ...props }: CustomComponentProps) => (
+        <img src={src} alt={alt} className="my-4" {...props} />
+      ),
+      a: ({ href, children, ...props }: CustomComponentProps) => {
+        if (
+          href &&
+          (href.includes(".webm") ||
+            href.includes(".mp4") ||
+            href.includes(".ogg"))
+        ) {
+          return (
+            <video controls className="my-4 max-w-full" src={href}>
+              Tu navegador no soporta el elemento de video.
+            </video>
+          );
+        }
+        return (
+          <a className="text-blue-600 hover:underline" href={href} {...props}>
+            {highlightText(children)}
+          </a>
+        );
+      },
+    }),
+    [highlightText]
+  );
 
   return (
     <div className="relative">
