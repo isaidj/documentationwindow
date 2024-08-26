@@ -1,46 +1,41 @@
+// DocumentationDrawer.tsx
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-
-import { X, Search, PanelLeftOpen, PanelLeftClose } from "lucide-react";
-import { SkeletonMarkdown } from "./SkeletonMarkdown";
-import MarkdownVisualizer from "./MarkdownVisualizer";
-import axios from "axios";
-import { useDebounce } from "use-debounce";
 import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
-import MenuDrawer from "./MenuDrawer";
+
+import { SearchModeType } from "./InputSearch";
+import { useDocumentationService } from "@/hooks/useDocumentationService";
+import { DrawerHeader } from "./DrawerHeader";
+import { SearchSection } from "./SearchSection";
+import { ContentSection } from "./ContentSection";
+
+const DRAWER_WIDTH = 384;
 
 const DocumentationDrawer: React.FC = () => {
   const { isOpen, setIsOpen, pathname } = useDocumentationDrawer();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [searchMode, setSearchMode] = useState<SearchModeType>("onText");
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchTermDebounced] = useDebounce(searchTerm, 500);
-  const [documentationContent, setDocumentationContent] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuWidth = 256;
-  const drawerWidth = 384;
 
-  const toggleDrawer = useCallback(() => {
-    const newIsOpen = !isOpen;
-    setIsOpen(newIsOpen);
-    window.parent.postMessage({ type: "drawerToggle", isOpen: newIsOpen }, "*");
-  }, [isOpen, setIsOpen]);
-
-  const toggleMenu = useCallback(() => {
-    setIsMenuOpen((prev) => !prev);
-  }, []);
+  const {
+    loading,
+    documentationContent,
+    searchResults,
+    hasSearched,
+    fetchDocumentation,
+    fetchAndSetDocumentContent,
+  } = useDocumentationService();
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === "toggleDrawer") {
+      if (event.data?.type === "toggleDrawer") {
         setIsOpen(event.data.isOpen);
+      }
+      if (event.data?.type === "toggleExpand") {
+        setIsExpanded(event.data.isOpen);
       }
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [setIsOpen]);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "F1") {
         event.preventDefault();
@@ -48,127 +43,99 @@ const DocumentationDrawer: React.FC = () => {
       }
     };
 
+    window.addEventListener("message", handleMessage);
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleDrawer]);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [setIsOpen]);
 
   useEffect(() => {
-    if (isOpen) {
-      if (!pathname) {
-        setDocumentationContent("## No se ha seleccionado documentación");
-        return;
-      }
-      fetchOutlineDocumentation();
+    if (isOpen && !documentationContent) {
+      fetchDocumentation(pathname);
     }
-  }, [pathname, isOpen, searchTermDebounced]);
+  }, [isOpen, pathname, documentationContent, fetchDocumentation]);
 
-  const fetchOutlineDocumentation = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.post(
-        "http://localhost:3000/api/documentation/search-documents",
-        {
-          body: {
-            searchTerm: searchTermDebounced,
-            pathname,
-          },
-        }
-      );
+  const toggleDrawer = useCallback(() => {
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    window.parent.postMessage({ type: "drawerToggle", isOpen: newIsOpen }, "*");
+  }, [isOpen, setIsOpen]);
 
-      if (response.data.error) {
-        setDocumentationContent("## No se encontró documentación");
-      } else {
-        setDocumentationContent(response.data.data);
+  const toggleExpand = useCallback(() => {
+    const newIsExpanded = !isExpanded;
+    setIsExpanded(newIsExpanded);
+    window.parent.postMessage(
+      { type: "expandToggle", isOpen: newIsExpanded },
+      "*"
+    );
+  }, [isExpanded]);
+
+  const handleSearch = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value;
+      setSearchTerm(value);
+      if (searchMode === "onDocuments" && value) {
+        fetchDocumentation(value);
       }
-    } catch (error) {
-      console.error("Error loading documentation:", error);
-      setDocumentationContent("## Error al cargar la documentación");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [searchMode, fetchDocumentation]
+  );
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
+  const handleSearchModeChange = useCallback(
+    (mode: SearchModeType) => {
+      setSearchMode(mode);
+      if (mode === "onDocuments" && searchTerm) {
+        fetchDocumentation(searchTerm);
+      }
+    },
+    [searchTerm, fetchDocumentation]
+  );
+
+  const handleResultClick = useCallback(
+    (documentId: string) => {
+      fetchAndSetDocumentContent(documentId);
+      setSearchMode("onText");
+    },
+    [fetchAndSetDocumentContent]
+  );
 
   if (!isOpen) return null;
 
   return (
     <div
-      className={`fixed z-50 top-0 right-0 h-full bg-white shadow-lg flex transition-all duration-75 ease-in-out overflow-hidden ${
+      className={`absolute z-40 top-0 right-0 h-full bg-white shadow-lg flex transition-all duration-75 ease-in-out overflow-hidden ${
         isOpen ? "fade-in" : "fade-out"
       }`}
-      style={{ width: `${drawerWidth}px` }}
+      style={{ width: isExpanded ? "100%" : `${DRAWER_WIDTH}px` }}
     >
-      <MenuDrawer
-        isOpen={isMenuOpen}
-        setIsOpen={setIsMenuOpen}
-        menuWidth={menuWidth}
-      />
-      <div
-        className="flex flex-col h-full transition-transform duration-75 ease-in-out relative"
-        style={{
-          width: `${drawerWidth}px`,
-          // transform: isMenuOpen
-          //   ? `translateX(${menuWidth}px)`
-          //   : "translateX(0)",
-        }}
-      >
-        <div className="flex justify-between items-center gap-1 p-4 bg-blue-600 text-white">
-          <button
-            onClick={toggleMenu}
-            className="text-white hover:text-blue-200 transition-colors"
-          >
-            {isMenuOpen ? (
-              <PanelLeftClose size={24} className="cursor-pointer" />
-            ) : (
-              <PanelLeftOpen size={24} className="cursor-pointer" />
-            )}
-          </button>
-          <h2 className="text-lg font-semibold">Documentación</h2>
-          <div className="w-6"></div>{" "}
-          {/* Espaciador para mantener el título centrado */}
-        </div>
-
-        {/* Botón de cierre reposicionado */}
-        <button
-          onClick={toggleDrawer}
-          className="absolute top-2 right-2 text-white hover:text-blue-200 transition-colors z-10"
-        >
-          <X size={24} />
-        </button>
-
-        <div className="flex-grow flex flex-col overflow-hidden">
-          <div className="p-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar en la documentación..."
-                value={searchTerm}
-                onChange={handleSearch}
-                className="w-full pl-10 pr-4 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Search
-                className="absolute left-3 top-2.5 text-blue-400"
-                size={16}
-              />
-            </div>
-          </div>
-          <div className="flex-grow p-4 overflow-auto">
-            {loading ? (
-              <SkeletonMarkdown />
-            ) : (
-              <MarkdownVisualizer
-                content={documentationContent}
-                search={searchTermDebounced}
-              />
-            )}
-          </div>
+      <div className="flex flex-col h-full w-full">
+        <DrawerHeader
+          isExpanded={isExpanded}
+          toggleDrawer={toggleDrawer}
+          toggleExpand={toggleExpand}
+        />
+        <div className="flex-grow flex flex-col overflow-hidden relative">
+          <SearchSection
+            searchTerm={searchTerm}
+            searchMode={searchMode}
+            hasSearched={hasSearched}
+            searchResults={searchResults}
+            handleSearch={handleSearch}
+            handleSearchModeChange={handleSearchModeChange}
+            handleResultClick={handleResultClick}
+          />
+          <ContentSection
+            searchMode={searchMode}
+            loading={loading}
+            documentationContent={documentationContent}
+            searchTerm={searchTerm}
+          />
         </div>
       </div>
     </div>
   );
 };
 
-export default DocumentationDrawer;
+export default React.memo(DocumentationDrawer);
