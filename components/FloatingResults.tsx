@@ -1,5 +1,6 @@
 import React from "react";
 import { FileText, Book, Code, Hash } from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface OutlineDocument {
   id: string;
@@ -32,17 +33,25 @@ const getIconForDocument = (document: OutlineDocument): JSX.Element => {
   return typeIcons.default;
 };
 
+const sanitizeHTML = (html: string) => {
+  return {
+    __html: DOMPurify.sanitize(html),
+  };
+};
+
 const FloatingSearchResults: React.FC<FloatingSearchResultsProps> = ({
   results,
   onResultClick,
 }) => {
   return (
-    <div className="absolute mt-2 z-50 w-full top-auto left-0 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden overflow-y-auto">
+    <div className="absolute mt-2 z-50 w-full top-auto left-0 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
       <div className="p-4">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">
           Resultados de búsqueda
         </h3>
-        <div className="space-y-3">
+      </div>
+      <div className="max-h-[60vh] overflow-y-auto">
+        <div className="px-4 space-y-3">
           {results.map((result) => (
             <div
               key={result.document.id}
@@ -56,7 +65,10 @@ const FloatingSearchResults: React.FC<FloatingSearchResultsProps> = ({
                 <h4 className="text-sm font-medium text-gray-800">
                   {result.document.title}
                 </h4>
-                <p className="text-xs text-gray-500 mt-1">{result.context}</p>
+                <p
+                  className="text-xs text-gray-500 mt-1"
+                  dangerouslySetInnerHTML={sanitizeHTML(result.context)}
+                />
               </div>
             </div>
           ))}

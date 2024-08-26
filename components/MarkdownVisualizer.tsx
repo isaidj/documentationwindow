@@ -17,6 +17,13 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
 
+  const normalizeText = (text: string): string => {
+    return text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  };
+
   useEffect(() => {
     if (search && containerRef.current) {
       const matches = containerRef.current.querySelectorAll("mark");
@@ -50,16 +57,26 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
 
   const highlightText = (text: React.ReactNode): React.ReactNode => {
     if (!search || typeof text !== "string") return text;
-    const parts = text.split(new RegExp(`(${search})`, "gi"));
-    return parts.map((part, i) =>
-      part.toLowerCase() === search?.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-200">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
+    const normalizedSearch = normalizeText(search);
+    const parts = normalizeText(text).split(normalizedSearch);
+    let lastIndex = 0;
+    return parts.map((part, i) => {
+      if (i === 0) {
+        lastIndex = part.length;
+        return text.slice(0, part.length);
+      }
+      const start = lastIndex;
+      const end = lastIndex + normalizedSearch.length;
+      lastIndex = end + part.length;
+      return (
+        <>
+          <mark key={i} className="bg-yellow-200">
+            {text.slice(start, end)}
+          </mark>
+          {text.slice(end, lastIndex)}
+        </>
+      );
+    });
   };
 
   const customComponents = useMemo(
@@ -107,6 +124,14 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
           {highlightText(children)}
         </blockquote>
       ),
+      code: ({ children, ...props }: CustomComponentProps) => (
+        <code
+          className="bg-gray-100 rounded p-1 whitespace-pre-wrap"
+          {...props}
+        >
+          {highlightText(children)}
+        </code>
+      ),
       pre: ({ children, ...props }: CustomComponentProps) => (
         <code
           className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap"
@@ -148,11 +173,11 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
 
   return (
     <div className="relative">
-      <div ref={containerRef}>
+      <div ref={containerRef} className="mb-16">
         <ReactMarkdown components={customComponents}>{content}</ReactMarkdown>
       </div>
       {search && (
-        <div className="fixed bottom-4 right-4 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">
+        <div className="fixed bottom-4 left-4 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">
           {totalMatches > 0 ? (
             <>
               <button

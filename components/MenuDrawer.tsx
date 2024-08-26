@@ -1,68 +1,138 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { DocumentItem, ResponseData } from "@/types/InterfaceMenuStructure";
 import { ChevronDown, FileText } from "lucide-react";
 import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 interface MenuDrawerProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   menuWidth: number;
+  onItemClick: (documentId: string) => void;
 }
 
 const MenuItemComponent: React.FC<{
   item: DocumentItem;
   depth: number;
-}> = React.memo(({ item, depth }) => {
+  onItemClick: (documentId: string) => void;
+}> = React.memo(({ item, depth, onItemClick }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   const { pathname } = useDocumentationDrawer();
+  const titleRef = useRef<HTMLSpanElement>(null);
 
-  const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), []);
+  const handleItemClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onItemClick(item.id);
+    },
+    [item.id, onItemClick]
+  );
+
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    const checkTextOverflow = () => {
+      if (titleRef.current) {
+        setShowTooltip(
+          titleRef.current.scrollWidth > titleRef.current.clientWidth
+        );
+      }
+    };
+
+    checkTextOverflow();
+    window.addEventListener("resize", checkTextOverflow);
+
+    return () => {
+      window.removeEventListener("resize", checkTextOverflow);
+    };
+  }, [item.title]);
 
   return (
-    <div className=" ">
+    <div className="w-full">
       <div
-        className={`flex relative items-center justify-between p-2 pl-0 hover:bg-gray-200 cursor-pointer rounded transition-colors duration-200 ease-in-out ${
+        className={`flex relative items-center justify-between p-2 cursor-pointer rounded transition-colors duration-200 ease-in-out ${
           pathname === item.title ? "bg-blue-200" : ""
         }`}
         style={{ paddingLeft: `${(depth + 1) * 0.5}rem` }}
-        onClick={toggleOpen}
+        onClick={handleItemClick}
       >
-        {/* <div className=" absolute border-l-[1px] border-cyan-700 h-full"></div> */}
-        <div className="flex items-center flex-grow">
-          <div className="w-6 flex justify-center ml-1">
-            <FileText size={18} className="text-gray-600" />
+        <div className="flex items-center w-full min-w-0 ">
+          <div className="w-6 flex-shrink-0 flex justify-center mr-2">
+            {item.icon ? (
+              <div className="w-5 h-5">{item.icon}</div>
+            ) : (
+              <FileText size={16} className="text-gray-600" />
+            )}
           </div>
-          <span className="text-sm font-medium text-gray-700 truncate ">
-            {item.title}
-          </span>
+          <Tooltip.Provider delayDuration={100}>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <span
+                  ref={titleRef}
+                  className="text-sm font-medium text-gray-700 truncate flex-grow mr-2 hover:underline"
+                >
+                  {item.title}
+                </span>
+              </Tooltip.Trigger>
+              {showTooltip && (
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white p-2 rounded shadow-lg border border-gray-200 z-50 max-w-xs"
+                    side="top"
+                    sideOffset={5}
+                    data-state="instant-open"
+                  >
+                    {item.title}
+                    <Tooltip.Arrow className="fill-white" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              )}
+            </Tooltip.Root>
+          </Tooltip.Provider>
         </div>
         {item.children.length > 0 && (
-          <div className="w-6 flex justify-center flex-shrink-0">
+          <div
+            className="w-6 flex-shrink-0 flex justify-center bg-gray-100 rounded-full hover:bg-gray-200"
+            onClick={handleToggle}
+          >
             <div
               className={`transform transition-transform duration-200 ${
                 isOpen ? "rotate-180" : ""
               }`}
             >
-              <ChevronDown size={18} className="text-gray-600" />
+              <ChevronDown size={16} className="text-gray-600" />
             </div>
           </div>
         )}
       </div>
-      <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        {item.children.map((child) => (
-          <MenuItemComponent key={child.id} item={child} depth={depth + 1} />
-        ))}
-      </div>
+      {item.children.length > 0 && (
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          {item.children.map((child) => (
+            <MenuItemComponent
+              key={child.id}
+              item={child}
+              depth={depth + 1}
+              onItemClick={onItemClick}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 });
+
 MenuItemComponent.displayName = "MenuItemComponent";
+
 const SkeletonLoader: React.FC = () => {
   return (
     <div className="p-4">
@@ -90,7 +160,7 @@ const SkeletonLoader: React.FC = () => {
 };
 
 const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
-  ({ isOpen, setIsOpen, menuWidth }) => {
+  ({ isOpen, setIsOpen, menuWidth, onItemClick }) => {
     const [loading, setLoading] = useState(false);
     const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
 
@@ -130,7 +200,12 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
           <div className="p-4">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Menu</h2>
             {menuContent.map((item) => (
-              <MenuItemComponent key={item.id} item={item} depth={0} />
+              <MenuItemComponent
+                key={item.id}
+                item={item}
+                depth={0}
+                onItemClick={onItemClick}
+              />
             ))}
           </div>
         )}
@@ -138,5 +213,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
     );
   }
 );
+
 MenuDrawer.displayName = "MenuDrawer";
+
 export default MenuDrawer;
