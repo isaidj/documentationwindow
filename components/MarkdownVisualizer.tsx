@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import remarkGfm from "remark-gfm";
 
 interface MarkdownVisualizerProps {
   content: string;
@@ -82,17 +83,17 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
   const customComponents = useMemo(
     () => ({
       h1: ({ children, ...props }: CustomComponentProps) => (
-        <h1 className="text-2xl font-bold mb-4" {...props}>
+        <h1 className="text-3xl font-bold mt-8 mb-4" {...props}>
           {highlightText(children)}
         </h1>
       ),
       h2: ({ children, ...props }: CustomComponentProps) => (
-        <h2 className="text-xl font-semibold mb-3" {...props}>
+        <h2 className="text-2xl font-semibold mt-6 mb-3" {...props}>
           {highlightText(children)}
         </h2>
       ),
       h3: ({ children, ...props }: CustomComponentProps) => (
-        <h3 className="text-lg font-medium mb-2" {...props}>
+        <h3 className="text-xl font-medium mt-4 mb-2" {...props}>
           {highlightText(children)}
         </h3>
       ),
@@ -112,7 +113,7 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
         </ol>
       ),
       li: ({ children, ...props }: CustomComponentProps) => (
-        <li className="mb-1" {...props}>
+        <li className="mb-2" {...props}>
           {highlightText(children)}
         </li>
       ),
@@ -133,12 +134,12 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
         </code>
       ),
       pre: ({ children, ...props }: CustomComponentProps) => (
-        <code
-          className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap"
+        <pre
+          className="bg-gray-100 rounded p-4 my-4 overflow-x-auto"
           {...props}
         >
           {highlightText(children)}
-        </code>
+        </pre>
       ),
       strong: ({ children, ...props }: CustomComponentProps) => (
         <strong className="font-semibold" {...props}>
@@ -146,7 +147,7 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
         </strong>
       ),
       img: ({ src, alt, ...props }: CustomComponentProps) => (
-        <img src={src} alt={alt} className="my-4" {...props} />
+        <img src={src} alt={alt} className="my-4 max-w-full" {...props} />
       ),
       a: ({ href, children, ...props }: CustomComponentProps) => {
         if (
@@ -167,14 +168,59 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
           </a>
         );
       },
+      // Nuevos componentes para las tablas
+      table: ({ children, ...props }: CustomComponentProps) => (
+        <table
+          className="min-w-full border-collapse border border-gray-300 my-4"
+          {...props}
+        >
+          {children}
+        </table>
+      ),
+      thead: ({ children, ...props }: CustomComponentProps) => (
+        <thead className="bg-gray-100" {...props}>
+          {children}
+        </thead>
+      ),
+      tbody: ({ children, ...props }: CustomComponentProps) => (
+        <tbody className="bg-white" {...props}>
+          {children}
+        </tbody>
+      ),
+      tr: ({ children, ...props }: CustomComponentProps) => (
+        <tr className="border-b border-gray-300" {...props}>
+          {children}
+        </tr>
+      ),
+      th: ({ children, ...props }: CustomComponentProps) => (
+        <th
+          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          {...props}
+        >
+          {highlightText(children)}
+        </th>
+      ),
+      td: ({ children, ...props }: CustomComponentProps) => (
+        <td
+          className="px-6 py-4 whitespace-pre-wrap text-sm text-gray-500"
+          {...props}
+        >
+          {highlightText(children)}
+        </td>
+      ),
     }),
     [highlightText]
   );
 
   return (
-    <div className="relative">
+    <div className="relative markdown-content">
       <div ref={containerRef} className="mb-16">
-        <ReactMarkdown components={customComponents}>{content}</ReactMarkdown>
+        <ReactMarkdown
+          components={customComponents}
+          remarkPlugins={[remarkGfm]}
+        >
+          {content}
+        </ReactMarkdown>
       </div>
       {search && (
         <div className="fixed bottom-4 left-4 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">

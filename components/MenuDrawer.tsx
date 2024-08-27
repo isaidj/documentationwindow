@@ -56,9 +56,8 @@ const MenuItemComponent: React.FC<{
   return (
     <div className="w-full">
       <div
-        className={`flex relative items-center justify-between p-2 cursor-pointer rounded transition-colors duration-200 ease-in-out ${
-          pathname === item.title ? "bg-blue-200" : ""
-        }`}
+        className={`flex relative items-center justify-between p-2 cursor-pointer rounded transition-colors duration-200 ease-in-out hover:bg-gray-100
+          ${pathname === item.title ? "bg-blue-200" : ""}`}
         style={{ paddingLeft: `${(depth + 1) * 0.5}rem` }}
         onClick={handleItemClick}
       >
@@ -98,7 +97,7 @@ const MenuItemComponent: React.FC<{
         </div>
         {item.children.length > 0 && (
           <div
-            className="w-6 flex-shrink-0 flex justify-center bg-gray-100 rounded-full hover:bg-gray-200"
+            className="w-6 h-6 items-center flex-shrink-0 flex justify-center bg-gray-100 rounded-full hover:bg-gray-200"
             onClick={handleToggle}
           >
             <div
@@ -106,7 +105,7 @@ const MenuItemComponent: React.FC<{
                 isOpen ? "rotate-180" : ""
               }`}
             >
-              <ChevronDown size={16} className="text-gray-600" />
+              <ChevronDown size={18} className="text-gray-600" />
             </div>
           </div>
         )}

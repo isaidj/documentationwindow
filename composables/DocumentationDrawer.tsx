@@ -6,16 +6,16 @@ import {
   Expand,
   Minimize2,
 } from "lucide-react";
-import { useDebounce } from "use-debounce";
-import axios from "axios";
 import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
-
-import MarkdownVisualizer from "./MarkdownVisualizer";
-import { SkeletonMarkdown } from "./SkeletonMarkdown";
-import MenuDrawer from "./MenuDrawer";
-import InputSearch, { SearchModeType } from "./InputSearch";
-import FloatingSearchResults from "./FloatingResults";
 import { useDocumentationDrawerControls } from "@/hooks/useDocumentationDrawerControls";
+import { useDebounce } from "use-debounce";
+import InputSearch, { SearchModeType } from "@/components/InputSearch";
+import axios from "axios";
+import MenuDrawer from "@/components/MenuDrawer";
+import FloatingSearchResults from "@/components/FloatingResults";
+import { SkeletonMarkdown } from "@/components/SkeletonMarkdown";
+import MarkdownVisualizer from "@/components/MarkdownVisualizer";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 const DocumentationDrawer = () => {
   const { pathname, setIsOpen: setIsOpenContext } = useDocumentationDrawer();
@@ -43,7 +43,7 @@ const DocumentationDrawer = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   const menuWidth = 256;
-  const drawerWidth = 384;
+  const drawerWidth = 600;
 
   useEffect(() => {
     if (isOpen && !documentationContent) {
@@ -142,6 +142,7 @@ const DocumentationDrawer = () => {
   const handleResultClick = (documentId: string) => {
     setTextSearchTerm(docSearchTerm);
     fetchDocumentContentGetOutline(documentId);
+
     setSearchMode("onText");
   };
 
