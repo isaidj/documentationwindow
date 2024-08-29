@@ -15,6 +15,9 @@ body {
 .fade-in {
   animation: fadeIn 0.5s;
 }
+.fade-in-short {
+  animation: fadeIn 0.3s;
+}
 
 @keyframes fadeIn {
   from {

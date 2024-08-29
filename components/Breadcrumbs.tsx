@@ -1,33 +1,20 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React from "react";
 import { ChevronRight } from "lucide-react";
 import { CollectionDocument } from "@/types/InterfaceCollectionDocument";
-
-// interface Document {
-//   id: string;
-//   url: string;
-//   title: string;
-//   children: Document[];
-// }
-
-// interface ApiResponse {
-//   data: Document[];
-// }
 
 interface BreadcrumbsProps {
   currentId: string;
   documents: CollectionDocument[];
   onLinkClick: (id: string) => void;
+  isLoading?: boolean;
 }
 
 const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   currentId,
   documents,
   onLinkClick,
+  isLoading = false,
 }) => {
-  const [error, setError] = useState("");
-
-  //parte compleja,
   const findDocumentPath = (
     docs: CollectionDocument[],
     targetId: string,
@@ -47,32 +34,43 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
 
   const currentPath = findDocumentPath(documents, currentId) || [];
 
-  if (error) return <div className="text-red-500">{error}</div>;
+  const commonClasses = "flex items-center h-6 text-xs leading-6";
+  const skeletonItemClasses = "bg-gray-200 rounded animate-pulse h-4";
+
+  if (isLoading || currentPath.length === 0) {
+    return (
+      <div className={`${commonClasses} space-x-1`} aria-hidden="true">
+        <div className={`${skeletonItemClasses} w-20`}></div>
+        <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+        <div className={`${skeletonItemClasses} w-24`}></div>
+        <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+        <div className={`${skeletonItemClasses} w-28`}></div>
+      </div>
+    );
+  }
 
   return (
-    <nav className="flex" aria-label="Breadcrumb">
-      <ol className="inline-flex items-center space-x-1 md:space-x-1">
+    <nav className={commonClasses} aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-1">
         {currentPath.map((doc, index) => (
-          <li key={doc.id}>
-            <div className="flex items-center">
-              {index > 0 && <ChevronRight className="w-5 h-5 text-gray-400" />}
-
-              <a
-                // href={doc.url}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onLinkClick(doc.id);
-                  e.stopPropagation();
-                }}
-                className={`ml-1 text-xs text-nowrap font-medium ${
-                  index === currentPath.length - 1
-                    ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
-                }`}
-              >
-                {doc.title}
-              </a>
-            </div>
+          <li key={doc.id} className="flex items-center">
+            {index > 0 && (
+              <ChevronRight className="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" />
+            )}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                onLinkClick(doc.id);
+              }}
+              className={`truncate max-w-[150px] font-medium ${
+                index === currentPath.length - 1
+                  ? "text-blue-600"
+                  : "text-gray-700 hover:text-blue-600"
+              }`}
+            >
+              {doc.title}
+            </a>
           </li>
         ))}
       </ol>

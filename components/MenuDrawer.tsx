@@ -1,10 +1,13 @@
 "use client";
+
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { DocumentItem, ResponseData } from "@/types/InterfaceMenuStructure";
-import { ChevronDown, FileText } from "lucide-react";
+import { ChevronDown, FileText, Folder } from "lucide-react";
 import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { cn } from "@/libs/utils";
+import { Button } from "@/components/ui/Button";
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -56,25 +59,37 @@ const MenuItemComponent: React.FC<{
   return (
     <div className="w-full">
       <div
-        className={`flex relative items-center justify-between p-2 cursor-pointer rounded transition-colors duration-200 ease-in-out hover:bg-gray-100
-          ${pathname === item.title ? "bg-blue-200" : ""}`}
-        style={{ paddingLeft: `${(depth + 1) * 0.5}rem` }}
+        className={cn(
+          "flex relative items-center justify-between p-2 cursor-pointer rounded-md transition-colors duration-200 ease-in-out",
+          pathname === item.title
+            ? "bg-primary/10 text-primary"
+            : "hover:bg-gray-100 hover:text-indigo-600",
+          depth === 0 && "font-medium"
+        )}
+        style={{ paddingLeft: `${(depth + 1) * 0.75}rem` }}
         onClick={handleItemClick}
       >
-        <div className="flex items-center w-full min-w-0 ">
-          <div className="w-6 flex-shrink-0 flex justify-center mr-2">
+        <div className="flex items-center w-full min-w-0">
+          <div className="w-5 flex-shrink-0 flex justify-center mr-2">
             {item.icon ? (
-              <div className="w-5 h-5">{item.icon}</div>
+              <div className="w-4 h-4">{item.icon}</div>
+            ) : item.children.length > 0 ? (
+              <Folder size={16} className="text-muted-foreground" />
             ) : (
-              <FileText size={16} className="text-gray-600" />
+              <FileText size={16} className="text-muted-foreground" />
             )}
           </div>
-          <Tooltip.Provider delayDuration={100}>
+          <Tooltip.Provider delayDuration={300}>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
                 <span
                   ref={titleRef}
-                  className="text-sm font-medium text-gray-700 truncate flex-grow mr-2 hover:underline"
+                  className={cn(
+                    "text-sm truncate flex-grow mr-2",
+                    pathname === item.title
+                      ? "text-primary"
+                      : "text-foreground hover:text-primary"
+                  )}
                 >
                   {item.title}
                 </span>
@@ -82,13 +97,12 @@ const MenuItemComponent: React.FC<{
               {showTooltip && (
                 <Tooltip.Portal>
                   <Tooltip.Content
-                    className="bg-white p-2 rounded shadow-lg border border-gray-200 z-50 max-w-xs"
-                    side="top"
+                    className="bg-popover p-2 rounded-md shadow-md border text-popover-foreground z-50 max-w-xs"
+                    side="right"
                     sideOffset={5}
-                    data-state="instant-open"
                   >
                     {item.title}
-                    <Tooltip.Arrow className="fill-white" />
+                    <Tooltip.Arrow className="fill-popover" />
                   </Tooltip.Content>
                 </Tooltip.Portal>
               )}
@@ -96,25 +110,28 @@ const MenuItemComponent: React.FC<{
           </Tooltip.Provider>
         </div>
         {item.children.length > 0 && (
-          <div
-            className="w-6 h-6 items-center flex-shrink-0 flex justify-center bg-gray-100 rounded-full hover:bg-gray-200"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-6 h-6 p-0 hover:bg-transparent"
             onClick={handleToggle}
           >
-            <div
-              className={`transform transition-transform duration-200 ${
-                isOpen ? "rotate-180" : ""
-              }`}
-            >
-              <ChevronDown size={18} className="text-gray-600" />
-            </div>
-          </div>
+            <ChevronDown
+              size={16}
+              className={cn(
+                "text-muted-foreground transition-transform duration-200",
+                isOpen && "rotate-180"
+              )}
+            />
+          </Button>
         )}
       </div>
       {item.children.length > 0 && (
         <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
             isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-          }`}
+          )}
         >
           {item.children.map((child) => (
             <MenuItemComponent
