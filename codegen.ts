@@ -1,12 +1,12 @@
 import { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
-  schema: "https://nodejs.softwaretributario.com:7005/graphql",
+  schema: "https://nodejs.softwaretributario.com:7038/graphql",
 
-  documents: ["src/**/*.tsx", "src/domain/graphql/**/*.graphqls"],
+  documents: ["app/**/*.tsx", "domain/graphql/**/*.graphqls"],
   verbose: true,
   generates: {
-    "./src/domain/graphql/index.ts": {
+    "./domain/graphql/index.ts": {
       // preset: "client",
       // presetConfig: {
       //     gqlTagName: "gql",

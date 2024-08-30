@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   X,
   PanelLeftOpen,
@@ -29,14 +29,19 @@ import MarkdownVisualizer from "@/components/MarkdownVisualizer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/Dropdown-menu";
+import DropdownMenu from "@/components/ui/DropdownMenu";
+import { useQuery, gql } from "@apollo/client";
+import { useHelpsQuery } from "@/domain/graphql";
 
+const testQueryGraphQL = gql`
+  query Helps {
+    helps {
+      id
+      url
+      outlineId
+    }
+  }
+`;
 const DocumentationDrawer = () => {
   const { pathname, setIsOpen: setIsOpenContext } = useDocumentationDrawer();
   const {
@@ -51,7 +56,7 @@ const DocumentationDrawer = () => {
     initialIsExpanded: false,
     onToggleDrawer: setIsOpenContext,
   });
-
+  // useHelpsQuery();
   const [textSearchTerm, setTextSearchTerm] = useState("");
   const [docSearchTerm, setDocSearchTerm] = useState("");
   const [debouncedTextSearchTerm] = useDebounce(textSearchTerm, 500);
@@ -62,10 +67,10 @@ const DocumentationDrawer = () => {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
-
+  // const { data, loading: loadingQuery, error } = useQuery(testQueryGraphQL);
+  // console.log(data);
   const menuWidth = 256;
   const drawerWidth = 600;
-
   useEffect(() => {
     if (isOpen && !documentationContent) {
       fetchDocumentContentCurrentPage(pathname);
@@ -230,8 +235,8 @@ const DocumentationDrawer = () => {
                 <Moon className="h-5 w-5" />
                 <span className="sr-only">Modo oscuro</span>
               </Button> */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <DropdownMenu
+                trigger={
                   <Button
                     variant="ghost"
                     size="icon"
@@ -240,14 +245,33 @@ const DocumentationDrawer = () => {
                     <User className="h-5 w-5" />
                     <span className="sr-only">Menú de usuario</span>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Perfil</DropdownMenuItem>
-                  <DropdownMenuItem>Configuración</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Cerrar sesión</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                }
+                content={
+                  <>
+                    <a
+                      href="#"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      Perfil
+                    </a>
+                    <a
+                      href="#"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      Configuración
+                    </a>
+                    <a
+                      href="#"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      Cerrar sesión
+                    </a>
+                  </>
+                }
+              />
               <Button
                 variant="ghost"
                 size="icon"

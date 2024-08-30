@@ -1,0 +1,7 @@
+query Helps {
+  helps {
+    id
+    url
+    outlineId
+  }
+}
