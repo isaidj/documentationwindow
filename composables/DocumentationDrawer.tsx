@@ -61,7 +61,7 @@ const DocumentationDrawer = () => {
   const [docSearchTerm, setDocSearchTerm] = useState("");
   const [debouncedTextSearchTerm] = useDebounce(textSearchTerm, 500);
   const [debouncedDocSearchTerm] = useDebounce(docSearchTerm, 500);
-  const [searchMode, setSearchMode] = useState("onText");
+  const [searchMode, setSearchMode] = useState<SearchModeType>("onText");
   const [documentationContent, setDocumentationContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -255,19 +255,19 @@ const DocumentationDrawer = () => {
                     >
                       Perfil
                     </a>
-                    <a
+                    {/* <a
                       href="#"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       role="menuitem"
                     >
                       Configuración
-                    </a>
+                    </a> */}
                     <a
                       href="#"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100"
                       role="menuitem"
                     >
-                      Cerrar sesión
+                      Modo administrador
                     </a>
                   </>
                 }
@@ -285,91 +285,30 @@ const DocumentationDrawer = () => {
           </div>
         </header>
 
-        <div className="flex-grow flex flex-col overflow-hidden relative">
-          <div className="p-4 relative">
-            <div className="flex items-center space-x-2 bg-white p-2 rounded-lg shadow-md">
-              <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  className="w-full pl-10  py-2 rounded-md border-gray-200 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder={
-                    searchMode === "onText"
-                      ? "Buscar en el texto"
-                      : "Buscar en la documentación"
-                  }
-                  type="text"
-                  value={
-                    searchMode === "onText" ? textSearchTerm : docSearchTerm
-                  }
-                  onChange={handleSearch}
-                />
-                {(textSearchTerm.length > 0 || docSearchTerm.length > 0) && (
-                  <Delete
-                    className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer"
-                    size={16}
-                    onClick={handleReset}
+        <div className="flex-grow flex flex-col overflow-hidden relative ">
+          <div
+            className={`flex flex-col  $${isExpanded ? "md:w-96" : "w-full"}`}
+          >
+            <div className="p-4 relative ">
+              <InputSearch
+                searchMode={searchMode}
+                textSearchTerm={textSearchTerm}
+                docSearchTerm={docSearchTerm}
+                isExpanded={isExpanded}
+                onSearchChange={handleSearch}
+                onSearchModeChange={handleSearchModeChange}
+                onReset={handleReset}
+              />
+              {searchMode === "onDocuments" && hasSearched && (
+                <div className="px-2  ">
+                  <FloatingSearchResults
+                    results={searchResults}
+                    onResultClick={handleResultClick}
+                    isLoading={loadingSearch}
                   />
-                )}
-              </div>
-              <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-md">
-                <TextSearch
-                  className={`h-4 w-4 ${
-                    searchMode === "onText"
-                      ? "text-indigo-600"
-                      : "text-gray-400"
-                  }`}
-                />
-                <Switch
-                  checked={searchMode === "onDocuments"}
-                  onCheckedChange={() =>
-                    handleSearchModeChange(
-                      searchMode === "onText" ? "onDocuments" : "onText"
-                    )
-                  }
-                  className="data-[state=checked]:bg-indigo-600"
-                />
-                <BookText
-                  className={`h-4 w-4 ${
-                    searchMode === "onDocuments"
-                      ? "text-indigo-600"
-                      : "text-gray-400"
-                  }`}
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="text-gray-600 hover:text-indigo-600 hover:border-indigo-300"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                <span className="sr-only">Filtrar</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="text-gray-600 hover:text-indigo-600 hover:border-indigo-300"
-              >
-                <LayoutGrid className="h-4 w-4" />
-                <span className="sr-only">Vista de cuadrícula</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="text-gray-600 hover:text-indigo-600 hover:border-indigo-300"
-              >
-                <Menu className="h-4 w-4" />
-                <span className="sr-only">Vista de lista</span>
-              </Button>
+                </div>
+              )}
             </div>
-            {searchMode === "onDocuments" && hasSearched && (
-              <div className="px-2  ">
-                <FloatingSearchResults
-                  results={searchResults}
-                  onResultClick={handleResultClick}
-                  isLoading={loadingSearch}
-                />
-              </div>
-            )}
           </div>
           {/* {searchMode === "onText" && ( */}
           <div className="flex-grow p-4 overflow-auto relative">

@@ -4,15 +4,14 @@ import { setContext } from "@apollo/client/link/context";
 import { useAuth } from "@/context/AuthContext";
 
 export const useApolloClient = () => {
-  const { getToken } = useAuth();
+  const { token } = useAuth();
 
   return useMemo(() => {
     const httpLink = createHttpLink({
       uri: "https://nodejs.softwaretributario.com:7038/graphql",
     });
 
-    const authLink = setContext(async (_, { headers }) => {
-      const token = await getToken();
+    const authLink = setContext((_, { headers }) => {
       return {
         headers: {
           ...headers,
@@ -25,5 +24,5 @@ export const useApolloClient = () => {
       link: authLink.concat(httpLink),
       cache: new InMemoryCache(),
     });
-  }, [getToken]);
+  }, [token]);
 };

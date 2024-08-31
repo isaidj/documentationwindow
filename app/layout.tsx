@@ -7,6 +7,7 @@ import DocumentationDrawer from "@/composables/DocumentationDrawer";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { useApolloClient } from "@/hooks/useApolloClient";
+import AuthenticatedApolloProvider from "@/context/AuthenticatedApolloProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,18 +16,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const client = useApolloClient();
-
   return (
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <ApolloProvider client={client}>
+          <AuthenticatedApolloProvider>
             <DocumentationDrawerProvider>
               {children}
               <DocumentationDrawer />
             </DocumentationDrawerProvider>
-          </ApolloProvider>
+          </AuthenticatedApolloProvider>
         </AuthProvider>
       </body>
     </html>
