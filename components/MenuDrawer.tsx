@@ -184,7 +184,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
       setError(null);
       try {
         const response = await axios.post<ResponseData>(
-          "http://localhost:3000/api/documentation/collections-documents"
+          "https://documentationwindow.vercel.app/api/documentation/collections-documents"
         );
         const data = response.data;
         if (Array.isArray(data.data)) {
