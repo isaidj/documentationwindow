@@ -71,9 +71,7 @@ const MenuItemComponent: React.FC<{
       >
         <div className="flex items-center w-full min-w-0">
           <div className="w-5 flex-shrink-0 flex justify-center mr-2">
-            {item.icon ? (
-              <div className="w-4 h-4">{item.icon}</div>
-            ) : item.children.length > 0 ? (
+            {item.children.length > 0 ? (
               <Folder size={16} className="text-muted-foreground" />
             ) : (
               <FileText size={16} className="text-muted-foreground" />
@@ -179,28 +177,43 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
   ({ isOpen, setIsOpen, menuWidth, onItemClick }) => {
     const [loading, setLoading] = useState(false);
     const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchMenu = useCallback(async () => {
       setLoading(true);
+      setError(null);
       try {
         const response = await axios.post<ResponseData>(
           "http://localhost:3000/api/documentation/collections-documents"
         );
         const data = response.data;
-        setMenuContent(data.data);
+        if (Array.isArray(data.data)) {
+          setMenuContent(data.data);
+        } else {
+          throw new Error("Invalid response format");
+        }
       } catch (error) {
         console.error("Error loading menu:", error);
         setMenuContent([]);
+        if (axios.isAxiosError(error)) {
+          setError(`Failed to load menu: ${error.message}`);
+        } else {
+          setError("An unexpected error occurred while loading the menu");
+        }
       } finally {
         setLoading(false);
       }
     }, []);
 
     useEffect(() => {
-      if (isOpen && menuContent.length === 0) {
+      if (isOpen && menuContent.length === 0 && !error) {
         fetchMenu();
       }
-    }, [isOpen, menuContent.length, fetchMenu]);
+    }, [isOpen, menuContent, fetchMenu, error]);
+
+    const handleRetry = () => {
+      fetchMenu();
+    };
 
     return (
       <div
@@ -212,17 +225,33 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
       >
         {loading ? (
           <SkeletonLoader />
+        ) : error ? (
+          <div className="p-4 flex flex-col justify-center items-center">
+            <p className="text-red-500 mb-2">{error}</p>
+            <Button
+              onClick={handleRetry}
+              variant="default"
+              size="icon"
+              className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50"
+            >
+              Retry
+            </Button>
+          </div>
         ) : (
           <div className="p-4">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Menu</h2>
-            {menuContent.map((item) => (
-              <MenuItemComponent
-                key={item.id}
-                item={item}
-                depth={0}
-                onItemClick={onItemClick}
-              />
-            ))}
+            {menuContent.length > 0 ? (
+              menuContent.map((item) => (
+                <MenuItemComponent
+                  key={item.id}
+                  item={item}
+                  depth={0}
+                  onItemClick={onItemClick}
+                />
+              ))
+            ) : (
+              <p>No menu items available.</p>
+            )}
           </div>
         )}
       </div>

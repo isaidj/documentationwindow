@@ -1,153 +1,377 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+"use client";
 
-interface UrlIdPair {
-  id: string;
-  url: string;
-  idDocument: string;
+import React, { useEffect, useState } from "react";
+
+import { SearchIcon, ChevronLeft, PlusCircle, PlusIcon } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+
+import { useAuth } from "@/context/AuthContext";
+import {
+  FindHelpWhere,
+  Help,
+  HelpsQuery,
+  MutationUpdateHelpArgs,
+  StateHelp,
+} from "@/domain/graphql";
+import TableAdmin, { stateConfig } from "@/components/TableAdmin";
+import { toast } from "sonner";
+import { useDebounce } from "use-debounce";
+import axios from "axios";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
+import { Label } from "@/components/ui/Label";
+import DropdownMenu from "@/components/ui/DropdownMenu";
+
+interface AdminPanelProps {
+  goBack: () => void;
 }
 
-const AdminPanel: React.FC = () => {
-  const [urlIdPairs, setUrlIdPairs] = useState<UrlIdPair[]>([]);
-  const [newUrl, setNewUrl] = useState("");
-  const [newIdDocument, setNewIdDocument] = useState("");
-  const [error, setError] = useState("");
+export default function AdminPanel({ goBack }: AdminPanelProps) {
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [globalFilterDebounced] = useDebounce(globalFilter, 500);
+  const [data, setData] = useState<Help[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(2);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newHelp, setNewHelp] = useState<Partial<Help>>({
+    url: "",
+    description: "",
+    outlineId: "",
+  });
+  const [stateFilter, setStateFilter] = useState<StateHelp | "all">(
+    StateHelp.Active
+  );
+  const { isLoggedIn, loading: authLoading, token } = useAuth();
 
-  useEffect(() => {
-    fetchUrlIdPairs();
-  }, []);
-
-  const fetchUrlIdPairs = async () => {
-    try {
-      const response = await axios.get("/api/admin/url-id-pairs");
-      setUrlIdPairs(response.data);
-    } catch (error) {
-      console.error("Error fetching URL-ID pairs:", error);
-      setError("Error al cargar los datos. Por favor, intente nuevamente.");
+  const fetchData = async () => {
+    if (!isLoggedIn()) {
+      goBack();
+      return;
     }
-  };
 
-  const handleAddPair = async (e: React.FormEvent) => {
-    e.preventDefault();
+    setIsLoading(true);
+    const where: FindHelpWhere = {
+      _and: [
+        {
+          _or: [
+            {
+              url: {
+                _like: `%${globalFilter}%`,
+              },
+            },
+            {
+              description: {
+                _like: `%${globalFilter}%`,
+              },
+            },
+            {
+              outlineId: {
+                _like: `%${globalFilter}%`,
+              },
+            },
+          ],
+        },
+      ],
+      // ...(stateFilter !== "all" ? [{ state: { _eq: stateFilter } }] : []),
+      state: stateFilter !== "all" ? stateFilter : undefined,
+    };
+
     try {
-      await axios.post("/api/admin/url-id-pairs", {
-        url: newUrl,
-        idDocument: newIdDocument,
+      const response = await fetch("/api/helpers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify({
+          where: where,
+        }),
       });
-      setNewUrl("");
-      setNewIdDocument("");
-      fetchUrlIdPairs();
-    } catch (error) {
-      console.error("Error adding URL-ID pair:", error);
-      setError(
-        "Error al agregar el par URL-ID. Por favor, intente nuevamente."
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const result: HelpsQuery = await response.json();
+
+      setData(result.helps as Help[]);
+    } catch (err) {
+      setError("Error fetching data. Please try again later.");
+      console.error("Error fetching data:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [
+    isLoggedIn,
+    authLoading,
+    goBack,
+    pageIndex,
+    pageSize,
+    globalFilterDebounced,
+    stateFilter,
+  ]);
+
+  const fetchOnSave = async (helpItem: Help) => {
+    const args: MutationUpdateHelpArgs = {
+      updateInput: helpItem,
+    };
+
+    try {
+      const response = await axios.patch("/api/helpers/help", args, {
+        headers: {
+          Authorization: `${token}`,
+        },
+      });
+
+      if (response.status >= 200 && response.status < 300) {
+        setData((prevData) =>
+          prevData.map((item) => (item.id === helpItem.id ? helpItem : item))
+        );
+      } else {
+        throw new Error("Failed to save data");
+      }
+    } catch (err) {
+      // Lanza el error para que toast.promise pueda capturarlo
+      throw new Error("Error al guardar");
+    }
+  };
+  const createHelpForm = async () => {
+    try {
+      const response = await axios.post(
+        "/api/helpers/help",
+        { createInput: newHelp },
+        {
+          headers: {
+            Authorization: `${token}`,
+          },
+        }
       );
+
+      if (response.status >= 200 && response.status < 300) {
+        setData((prevData) => [...prevData, response.data.createHelp]);
+        setIsCreateModalOpen(false);
+        setNewHelp({ url: "", description: "", outlineId: "" });
+        toast.success("New help item created successfully");
+      } else {
+        throw new Error("Failed to create new help item");
+      }
+    } catch (err: any) {
+      let errorMessage = "Error creating new help item";
+
+      if (axios.isAxiosError(err) && err.response) {
+        // Si es un error de Axios con una respuesta del servidor
+        errorMessage = err.response.data.error || errorMessage;
+      } else if (err instanceof Error) {
+        // Si es un error de JavaScript estándar
+        errorMessage = err.message;
+      }
+
+      toast.error(errorMessage);
+      console.error("Error creating new help item:", err);
     }
   };
 
-  const handleUpdatePair = async (
-    id: string,
-    url: string,
-    idDocument: string
-  ) => {
-    try {
-      await axios.put(`/api/admin/url-id-pairs/${id}`, { url, idDocument });
-      fetchUrlIdPairs();
-    } catch (error) {
-      console.error("Error updating URL-ID pair:", error);
-      setError(
-        "Error al actualizar el par URL-ID. Por favor, intente nuevamente."
-      );
-    }
-  };
+  if (authLoading) {
+    return <div>Loading authentication...</div>;
+  }
 
-  const handleDeletePair = async (id: string) => {
-    try {
-      await axios.delete(`/api/admin/url-id-pairs/${id}`);
-      fetchUrlIdPairs();
-    } catch (error) {
-      console.error("Error deleting URL-ID pair:", error);
-      setError(
-        "Error al eliminar el par URL-ID. Por favor, intente nuevamente."
-      );
-    }
-  };
+  if (!isLoggedIn()) {
+    return null; // The useEffect will handle redirection
+  }
+
+  // if (isLoading) {
+  //   return <div>Loading data...</div>;
+  // }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Administrar Pares URL-ID</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <form onSubmit={handleAddPair} className="mb-6">
-        <div className="flex gap-2 mb-2">
-          <input
-            type="text"
-            value={newUrl}
-            onChange={(e) => setNewUrl(e.target.value)}
-            placeholder="URL"
-            className="flex-grow p-2 border rounded"
-            required
-          />
-          <input
-            type="text"
-            value={newIdDocument}
-            onChange={(e) => setNewIdDocument(e.target.value)}
-            placeholder="ID del Documento"
-            className="flex-grow p-2 border rounded"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Agregar
-          </button>
+    <div className="flex flex-col h-screen bg-gray-100">
+      <main className="flex-grow p-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50"
+                onClick={goBack}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <h2 className="text-xl font-semibold">Configuracion</h2>
+            </div>
+            <div className="flex items-center space-x-2">
+              <DropdownMenu
+                trigger={
+                  <Button variant="outline" className="text-sm font-medium">
+                    {stateFilter === "all"
+                      ? "Todos los estados"
+                      : stateConfig[stateFilter].label}
+                  </Button>
+                }
+                contentSide="left"
+                content={(closeMenu) => (
+                  <>
+                    <a
+                      href="#"
+                      className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
+                      onClick={() => {
+                        setStateFilter("all");
+                        closeMenu();
+                      }}
+                    >
+                      Todos los estados
+                    </a>
+                    {Object.entries(stateConfig).map(
+                      ([state, { label, color }]) => (
+                        <a
+                          key={state}
+                          href="#"
+                          className={`block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${color}`}
+                          onClick={() => {
+                            setStateFilter(state as StateHelp);
+                            closeMenu();
+                          }}
+                        >
+                          {label}
+                        </a>
+                      )
+                    )}
+                  </>
+                )}
+              />
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search in all fields..."
+                  value={globalFilter ?? ""}
+                  onChange={(event) => setGlobalFilter(event.target.value)}
+                  className="pl-10 pr-4 py-2 w-64"
+                />
+              </div>
+
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Create New Help
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-md border">
+            <TableAdmin
+              stateFilter="all"
+              data={data}
+              onSave={(e) => {
+                console.log("Saving", e);
+                toast.promise(fetchOnSave(e), {
+                  loading: "Guardando...",
+                  success: "Guardado",
+                  error: "Error al guardar",
+                });
+              }}
+              isLoading={isLoading}
+            />
+          </div>
+          <div className="flex items-center justify-end space-x-2 py-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex((old) => Math.max(old - 1, 0))}
+              disabled={pageIndex === 0}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex((old) => old + 1)}
+              disabled={data.length < pageSize}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-      </form>
-      <table className="w-full">
-        <thead>
-          <tr>
-            <th className="text-left">URL</th>
-            <th className="text-left">ID del Documento</th>
-            <th className="text-left">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {urlIdPairs.map((pair) => (
-            <tr key={pair.id}>
-              <td>
-                <input
-                  type="text"
-                  value={pair.url}
-                  onChange={(e) =>
-                    handleUpdatePair(pair.id, e.target.value, pair.idDocument)
-                  }
-                  className="w-full p-2 border rounded"
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={pair.idDocument}
-                  onChange={(e) =>
-                    handleUpdatePair(pair.id, pair.url, e.target.value)
-                  }
-                  className="w-full p-2 border rounded"
-                />
-              </td>
-              <td>
-                <button
-                  onClick={() => handleDeletePair(pair.id)}
-                  className="bg-red-500 text-white px-2 py-1 rounded"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      </main>
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Help</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="url" className="text-right">
+                URL
+              </Label>
+              <Input
+                id="url"
+                value={newHelp.url}
+                onChange={(e) =>
+                  setNewHelp({ ...newHelp, url: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <Input
+                id="description"
+                value={newHelp.description}
+                onChange={(e) =>
+                  setNewHelp({
+                    ...newHelp,
+                    description: e.target.value,
+                  })
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="outlineId" className="text-right">
+                Outline ID
+              </Label>
+              <Input
+                id="outlineId"
+                value={newHelp.outlineId}
+                onChange={(e) =>
+                  setNewHelp({ ...newHelp, outlineId: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setIsCreateModalOpen(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button onClick={createHelpForm}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default AdminPanel;
+}

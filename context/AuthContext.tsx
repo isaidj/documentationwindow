@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from "react";
 import Cookies from "js-cookie";
 
@@ -12,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   login: () => Promise<void>;
+  isLoggedIn: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,11 +74,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     initializeAuth();
   }, []);
 
+  const isLoggedIn = useCallback(() => {
+    return !!token;
+  }, [token]);
+
   const value = {
     token,
     loading,
     error,
     login,
+    isLoggedIn,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

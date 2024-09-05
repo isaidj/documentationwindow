@@ -6,9 +6,9 @@ import DocumentationDrawerProvider from "@/context/DocumentationDrawerContext";
 import DocumentationDrawer from "@/composables/DocumentationDrawer";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import { useApolloClient } from "@/hooks/useApolloClient";
-import AuthenticatedApolloProvider from "@/context/AuthenticatedApolloProvider";
 
+import AuthenticatedApolloProvider from "@/context/AuthenticatedApolloProvider";
+import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
@@ -19,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Toaster />
         <AuthProvider>
           <AuthenticatedApolloProvider>
             <DocumentationDrawerProvider>

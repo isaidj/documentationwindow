@@ -31,7 +31,14 @@ import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import DropdownMenu from "@/components/ui/DropdownMenu";
 import { useQuery, gql } from "@apollo/client";
-import { useHelpsQuery } from "@/domain/graphql";
+import {
+  HelpsQuery,
+  QueryHelpsArgs,
+  StateHelp,
+  useHelpsQuery,
+} from "@/domain/graphql";
+import AdminPanel from "./AdminPanel";
+import { useAuth } from "@/context/AuthContext";
 
 const testQueryGraphQL = gql`
   query Helps {
@@ -43,6 +50,7 @@ const testQueryGraphQL = gql`
   }
 `;
 const DocumentationDrawer = () => {
+  const { token } = useAuth();
   const { pathname, setIsOpen: setIsOpenContext } = useDocumentationDrawer();
   const {
     isOpen,
@@ -62,6 +70,7 @@ const DocumentationDrawer = () => {
   const [debouncedTextSearchTerm] = useDebounce(textSearchTerm, 500);
   const [debouncedDocSearchTerm] = useDebounce(docSearchTerm, 500);
   const [searchMode, setSearchMode] = useState<SearchModeType>("onText");
+  const [adminMode, setAdminMode] = useState(false);
   const [documentationContent, setDocumentationContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -69,8 +78,9 @@ const DocumentationDrawer = () => {
   const [hasSearched, setHasSearched] = useState(false);
   // const { data, loading: loadingQuery, error } = useQuery(testQueryGraphQL);
   // console.log(data);
-  const menuWidth = 256;
-  const drawerWidth = 600;
+  const [menuWidth, setMenuWidth] = useState(256);
+  const [drawerWidth, setDrawerWidth] = useState(600);
+
   useEffect(() => {
     if (isOpen && !documentationContent) {
       fetchDocumentContentCurrentPage(pathname);
@@ -86,16 +96,29 @@ const DocumentationDrawer = () => {
   const fetchDocumentContentCurrentPage = async (url: string) => {
     setLoading(true);
     try {
-      const mockResponse = await axios.post(
-        "/api/documentation/documents-keys",
-        { url }
-      );
-      const documentData = mockResponse.data[0];
-      if (!documentData || !documentData.idDocument) {
+      const args: QueryHelpsArgs = {
+        where: {
+          url: {
+            _like: url,
+          },
+          state: StateHelp.Active,
+        },
+      };
+      const HelpsResponse = await axios.post("/api/helpers", args, {
+        method: "POST",
+        headers: {
+          Authorization: `${token}`,
+        },
+      });
+
+      const data: HelpsQuery = HelpsResponse.data;
+      const documentData = data.helps[0];
+      console.log(documentData);
+      if (!documentData) {
         throw new Error("No se encontró el ID del documento");
       }
       const response = await axios.post("/api/documentation/export-document", {
-        id: documentData.idDocument,
+        id: documentData.outlineId,
       });
       setDocumentationContent(response.data.data);
     } catch (error) {
@@ -109,8 +132,10 @@ const DocumentationDrawer = () => {
   const fetchDocumentContentGetOutline = async (id: string) => {
     setLoading(true);
     try {
-      const response = await axios.post("/api/documentation/export-document", {
-        id: id,
+      const response = await axios.get("/api/documentation/export-document", {
+        params: {
+          id,
+        },
       });
       setDocumentationContent(response.data.data);
     } catch (error) {
@@ -210,8 +235,11 @@ const DocumentationDrawer = () => {
                   <PanelLeftOpen className="h-5 w-5" />
                 )}
               </Button>
-              <h1 className="text-2xl font-bold text-gray-800">
-                Documentación
+              <h1 className="text-2xl font-bold text-gray-800 flex gap-2">
+                Documentación{" "}
+                {adminMode ? (
+                  <h1 className="text-indigo-600 font-medium">Administrador</h1>
+                ) : null}
               </h1>
             </div>
             <div className="flex items-center space-x-2">
@@ -227,14 +255,7 @@ const DocumentationDrawer = () => {
                   <Maximize2 className="h-5 w-5" />
                 )}
               </Button>
-              {/* <Button
-                variant="ghost"
-                size="icon"
-                className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50"
-              >
-                <Moon className="h-5 w-5" />
-                <span className="sr-only">Modo oscuro</span>
-              </Button> */}
+
               <DropdownMenu
                 trigger={
                   <Button
@@ -246,7 +267,8 @@ const DocumentationDrawer = () => {
                     <span className="sr-only">Menú de usuario</span>
                   </Button>
                 }
-                content={
+                contentSide="right"
+                content={(closeMenu) => (
                   <>
                     <a
                       href="#"
@@ -255,22 +277,22 @@ const DocumentationDrawer = () => {
                     >
                       Perfil
                     </a>
-                    {/* <a
-                      href="#"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      role="menuitem"
-                    >
-                      Configuración
-                    </a> */}
+
                     <a
                       href="#"
                       className="block px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100"
                       role="menuitem"
+                      onClick={() => {
+                        closeMenu();
+                        setAdminMode((prev) => !prev);
+                      }}
                     >
-                      Modo administrador
+                      {adminMode
+                        ? "Salir del modo admin"
+                        : "Entrar al modo admin"}
                     </a>
                   </>
-                }
+                )}
               />
               <Button
                 variant="ghost"
@@ -284,45 +306,48 @@ const DocumentationDrawer = () => {
             </div>
           </div>
         </header>
+        {adminMode ? (
+          <AdminPanel goBack={() => setAdminMode(false)} />
+        ) : (
+          <div className="flex-grow flex flex-col overflow-hidden relative ">
+            <div
+              className={`flex flex-col  $${isExpanded ? "md:w-96" : "w-full"}`}
+            >
+              <></>
+              <div className="p-4 relative ">
+                <InputSearch
+                  searchMode={searchMode}
+                  textSearchTerm={textSearchTerm}
+                  docSearchTerm={docSearchTerm}
+                  isExpanded={isExpanded}
+                  onSearchChange={handleSearch}
+                  onSearchModeChange={handleSearchModeChange}
+                  onReset={handleReset}
+                />
+                {searchMode === "onDocuments" && hasSearched && (
+                  <div className="px-2  ">
+                    <FloatingSearchResults
+                      results={searchResults}
+                      onResultClick={handleResultClick}
+                      isLoading={loadingSearch}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div className="flex-grow flex flex-col overflow-hidden relative ">
-          <div
-            className={`flex flex-col  $${isExpanded ? "md:w-96" : "w-full"}`}
-          >
-            <div className="p-4 relative ">
-              <InputSearch
-                searchMode={searchMode}
-                textSearchTerm={textSearchTerm}
-                docSearchTerm={docSearchTerm}
-                isExpanded={isExpanded}
-                onSearchChange={handleSearch}
-                onSearchModeChange={handleSearchModeChange}
-                onReset={handleReset}
-              />
-              {searchMode === "onDocuments" && hasSearched && (
-                <div className="px-2  ">
-                  <FloatingSearchResults
-                    results={searchResults}
-                    onResultClick={handleResultClick}
-                    isLoading={loadingSearch}
-                  />
-                </div>
+            <div className="flex-grow p-4 overflow-auto relative">
+              {loading ? (
+                <SkeletonMarkdown />
+              ) : (
+                <MarkdownVisualizer
+                  content={documentationContent}
+                  search={debouncedTextSearchTerm}
+                />
               )}
             </div>
           </div>
-          {/* {searchMode === "onText" && ( */}
-          <div className="flex-grow p-4 overflow-auto relative">
-            {loading ? (
-              <SkeletonMarkdown />
-            ) : (
-              <MarkdownVisualizer
-                content={documentationContent}
-                search={debouncedTextSearchTerm}
-              />
-            )}
-          </div>
-          {/* )} */}
-        </div>
+        )}
       </div>
     </div>
   );

@@ -7,12 +7,13 @@ export const publicGrahp = new GraphQLClient(
 
 export async function publicGraphqlFetcher<T>(
   query: DocumentNode,
-  variables?: OperationVariables
+  variables?: OperationVariables,
+  userCookie?: string
 ) {
   //   let userCookie = Cookies.get(import.meta.env.VITE_USER_TOKEN);
-  //   if (userCookie) {
-  //     publicGrahp.setHeader("Authorization", "Bearer " + userCookie!);
-  //   }
+  if (userCookie) {
+    publicGrahp.setHeader("Authorization", "Bearer " + userCookie!);
+  }
 
   const response: T = await publicGrahp.request<T>(query, variables);
   return response;

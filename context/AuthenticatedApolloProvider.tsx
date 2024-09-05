@@ -11,9 +11,9 @@ const AuthenticatedApolloProvider = ({
   const { loading, token } = useAuth();
   const client = useApolloClient();
 
-  if (loading || !token) {
-    return <div>Loading...</div>; // O cualquier otro componente de carga
-  }
+  // if (loading || !token) {
+  //   return null; // O cualquier otro componente de carga
+  // }
 
   return <ApolloProvider client={client}>{children}</ApolloProvider>;
 };
