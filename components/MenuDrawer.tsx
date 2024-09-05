@@ -8,6 +8,7 @@ import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { cn } from "@/libs/utils";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -178,13 +179,20 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
     const [loading, setLoading] = useState(false);
     const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
     const [error, setError] = useState<string | null>(null);
-
+    const { token } = useAuth();
     const fetchMenu = useCallback(async () => {
       setLoading(true);
       setError(null);
       try {
         const response = await axios.post<ResponseData>(
-          "https://documentationwindow.vercel.app/api/documentation/collections-documents"
+          "/api/documentation/collections-documents",
+          {},
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `${token}`,
+            },
+          }
         );
         const data = response.data;
         if (Array.isArray(data.data)) {

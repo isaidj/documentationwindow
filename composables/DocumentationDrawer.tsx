@@ -132,10 +132,8 @@ const DocumentationDrawer = () => {
   const fetchDocumentContentGetOutline = async (id: string) => {
     setLoading(true);
     try {
-      const response = await axios.get("/api/documentation/export-document", {
-        params: {
-          id,
-        },
+      const response = await axios.post("/api/documentation/export-document", {
+        id,
       });
       setDocumentationContent(response.data.data);
     } catch (error) {

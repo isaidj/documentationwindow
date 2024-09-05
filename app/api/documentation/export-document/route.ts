@@ -36,7 +36,7 @@ const exportDocument = async (id: string) => {
         }),
       }
     );
-
+    console.log("Response:", response);
     const data = await response.json();
     return data;
   } catch (error) {
