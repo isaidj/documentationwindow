@@ -11,12 +11,14 @@ import { Help, StateHelp } from "@/domain/graphql";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import DropdownMenu from "./ui/DropdownMenu";
+import { Link } from "lucide-react";
 
 interface TableAdminProps {
   data: Help[];
   onSave: (updatedRow: Help) => void;
   isLoading: boolean;
   stateFilter: StateHelp | "all";
+  onItemClick?: (documentId: string) => void;
 }
 
 export const stateConfig: Record<StateHelp, { label: string; color: string }> =
@@ -34,6 +36,7 @@ const TableAdmin: React.FC<TableAdminProps> = ({
   onSave,
   isLoading,
   stateFilter,
+  onItemClick,
 }) => {
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editedData, setEditedData] = useState<Help[]>(data);
@@ -133,7 +136,13 @@ const TableAdmin: React.FC<TableAdminProps> = ({
                     className="w-full"
                   />
                 ) : (
-                  <span className="font-mono text-sm">{row.outlineId}</span>
+                  <div
+                    className="flex items-center space-x-2 group cursor-pointer hover:text-blue-500"
+                    onClick={() => onItemClick && onItemClick(row.outlineId)}
+                  >
+                    <span className="font-mono text-sm">{row.outlineId}</span>
+                    <Link className="h-5 w-5" />
+                  </div>
                 )}
               </TableCell>
               <TableCell>

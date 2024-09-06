@@ -196,6 +196,10 @@ const DocumentationDrawer = () => {
     },
     [fetchDocumentContentGetOutline, toggleMenu]
   );
+  const handleDocumentClickFromAdmin = (documentId: string) => {
+    fetchDocumentContentGetOutline(documentId);
+    setAdminMode(false);
+  };
 
   if (!isOpen) return null;
 
@@ -304,7 +308,10 @@ const DocumentationDrawer = () => {
           </div>
         </header>
         {adminMode ? (
-          <AdminPanel goBack={() => setAdminMode(false)} />
+          <AdminPanel
+            goBack={() => setAdminMode(false)}
+            onItemClick={(e) => handleDocumentClickFromAdmin(e)}
+          />
         ) : (
           <div className="flex-grow flex flex-col overflow-hidden relative ">
             <div

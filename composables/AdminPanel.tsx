@@ -31,9 +31,10 @@ import DropdownMenu from "@/components/ui/DropdownMenu";
 
 interface AdminPanelProps {
   goBack: () => void;
+  onItemClick: (documentId: string) => void;
 }
 
-export default function AdminPanel({ goBack }: AdminPanelProps) {
+export default function AdminPanel({ goBack, onItemClick }: AdminPanelProps) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [globalFilterDebounced] = useDebounce(globalFilter, 500);
   const [data, setData] = useState<Help[]>([]);
@@ -295,6 +296,7 @@ export default function AdminPanel({ goBack }: AdminPanelProps) {
                 });
               }}
               isLoading={isLoading}
+              onItemClick={(e) => onItemClick(e)}
             />
           </div>
           <div className="flex items-center justify-end space-x-2 py-4">
