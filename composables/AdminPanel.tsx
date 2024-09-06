@@ -117,9 +117,9 @@ export default function AdminPanel({ goBack, onItemClick }: AdminPanelProps) {
       fetchData();
     }
   }, [
-    isLoggedIn,
-    authLoading,
-    goBack,
+    // isLoggedIn,
+    // authLoading,
+    // goBack,
     pageIndex,
     pageSize,
     globalFilterDebounced,
@@ -203,7 +203,7 @@ export default function AdminPanel({ goBack, onItemClick }: AdminPanelProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-gray-100 overflow-auto">
       <main className="flex-grow p-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center mb-6">
@@ -283,7 +283,7 @@ export default function AdminPanel({ goBack, onItemClick }: AdminPanelProps) {
               </div>
             </div>
           </div>
-          <div className="rounded-md border">
+          <div className="rounded-md border ">
             <TableAdmin
               stateFilter="all"
               data={data}
