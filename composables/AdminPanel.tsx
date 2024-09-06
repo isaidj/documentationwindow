@@ -50,7 +50,7 @@ export default function AdminPanel({ goBack }: AdminPanelProps) {
   const [stateFilter, setStateFilter] = useState<StateHelp | "all">(
     StateHelp.Active
   );
-  const { isLoggedIn, loading: authLoading, token } = useAuth();
+  const { isLoggedIn, loading: authLoading, jwt } = useAuth();
 
   const fetchData = async () => {
     if (!isLoggedIn()) {
@@ -90,7 +90,7 @@ export default function AdminPanel({ goBack }: AdminPanelProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `${token}`,
+          Authorization: `${jwt}`,
         },
         body: JSON.stringify({
           where: where,
@@ -133,7 +133,7 @@ export default function AdminPanel({ goBack }: AdminPanelProps) {
     try {
       const response = await axios.patch("/api/helpers/help", args, {
         headers: {
-          Authorization: `${token}`,
+          Authorization: `${jwt}`,
         },
       });
 
@@ -156,7 +156,7 @@ export default function AdminPanel({ goBack }: AdminPanelProps) {
         { createInput: newHelp },
         {
           headers: {
-            Authorization: `${token}`,
+            Authorization: `${jwt}`,
           },
         }
       );
@@ -205,7 +205,7 @@ export default function AdminPanel({ goBack }: AdminPanelProps) {
     <div className="flex flex-col h-screen bg-gray-100">
       <main className="flex-grow p-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center mb-6">
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
@@ -217,64 +217,69 @@ export default function AdminPanel({ goBack }: AdminPanelProps) {
               </Button>
               <h2 className="text-xl font-semibold">Configuracion</h2>
             </div>
-            <div className="flex items-center space-x-2">
-              <DropdownMenu
-                trigger={
-                  <Button variant="outline" className="text-sm font-medium">
-                    {stateFilter === "all"
-                      ? "Todos los estados"
-                      : stateConfig[stateFilter].label}
-                  </Button>
-                }
-                contentSide="left"
-                content={(closeMenu) => (
-                  <>
-                    <a
-                      href="#"
-                      className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-                      onClick={() => {
-                        setStateFilter("all");
-                        closeMenu();
-                      }}
-                    >
-                      Todos los estados
-                    </a>
-                    {Object.entries(stateConfig).map(
-                      ([state, { label, color }]) => (
-                        <a
-                          key={state}
-                          href="#"
-                          className={`block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${color}`}
-                          onClick={() => {
-                            setStateFilter(state as StateHelp);
-                            closeMenu();
-                          }}
-                        >
-                          {label}
-                        </a>
-                      )
-                    )}
-                  </>
-                )}
-              />
-              <div className="relative">
+            <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:space-x-2">
+              <div className="relative w-full sm:w-64 order-first sm:order-none">
                 <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Search in all fields..."
                   value={globalFilter ?? ""}
                   onChange={(event) => setGlobalFilter(event.target.value)}
-                  className="pl-10 pr-4 py-2 w-64"
+                  className="pl-10 pr-4 py-2 w-full"
                 />
               </div>
-
-              <Button
-                variant="outline"
-                size="default"
-                onClick={() => setIsCreateModalOpen(true)}
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Create New Help
-              </Button>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:space-x-2">
+                <DropdownMenu
+                  trigger={
+                    <Button
+                      variant="outline"
+                      className="text-sm font-medium w-full"
+                    >
+                      {stateFilter === "all"
+                        ? "Todos los estados"
+                        : stateConfig[stateFilter].label}
+                    </Button>
+                  }
+                  contentSide="left"
+                  content={(closeMenu) => (
+                    <>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
+                        onClick={() => {
+                          setStateFilter("all");
+                          closeMenu();
+                        }}
+                      >
+                        Todos los estados
+                      </a>
+                      {Object.entries(stateConfig).map(
+                        ([state, { label, color }]) => (
+                          <a
+                            key={state}
+                            href="#"
+                            className={`block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${color}`}
+                            onClick={() => {
+                              setStateFilter(state as StateHelp);
+                              closeMenu();
+                            }}
+                          >
+                            {label}
+                          </a>
+                        )
+                      )}
+                    </>
+                  )}
+                />
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="w-full"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Create New Help
+                </Button>
+              </div>
             </div>
           </div>
           <div className="rounded-md border">

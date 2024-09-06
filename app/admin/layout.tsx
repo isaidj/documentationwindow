@@ -5,13 +5,13 @@ import { redirect } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const { token, loading } = useAuth();
+  const { jwt, loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  if (!token) {
+  if (!jwt) {
     redirect("/login");
   }
 

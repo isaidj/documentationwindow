@@ -10,4 +10,5 @@ export interface DocumentItem {
   title: string;
   icon: string;
   children: DocumentItem[];
+  isOpen?: boolean;
 }

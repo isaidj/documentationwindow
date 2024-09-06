@@ -18,15 +18,11 @@ const queryHelps = gql`
   }
 `;
 export async function POST(req: Request) {
-  const token = req.headers.get("Authorization");
+  const jwt = req.headers.get("Authorization");
 
-  // console.log("token", token);
-  // const { body } = await req.json();
-  // const variables: QueryHelpsArgs = body;
-
-  if (!token) {
+  if (!jwt) {
     return NextResponse.json(
-      { error: "No authorization token provided" },
+      { error: "No authorization jwt provided" },
       { status: 401 }
     );
   }
@@ -44,7 +40,7 @@ export async function POST(req: Request) {
     const response = await publicGraphqlFetcher<HelpsQuery[]>(
       queryHelps,
       args,
-      token
+      jwt
     );
     const data = response;
     return NextResponse.json(data);

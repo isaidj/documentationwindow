@@ -24,7 +24,9 @@ import axios from "axios";
 import MenuDrawer from "@/components/MenuDrawer";
 import FloatingSearchResults from "@/components/FloatingResults";
 import { SkeletonMarkdown } from "@/components/skeletons/SkeletonMarkdown";
-import MarkdownVisualizer from "@/components/MarkdownVisualizer";
+import MarkdownVisualizer, {
+  MarkdownVisualizerProps,
+} from "@/components/MarkdownVisualizer";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -40,18 +42,11 @@ import {
 import AdminPanel from "./AdminPanel";
 import { useAuth } from "@/context/AuthContext";
 
-const testQueryGraphQL = gql`
-  query Helps {
-    helps {
-      id
-      url
-      outlineId
-    }
-  }
-`;
 const DocumentationDrawer = () => {
-  const { token } = useAuth();
+  const { jwt, isLoggedIn } = useAuth();
   const { pathname, setIsOpen: setIsOpenContext } = useDocumentationDrawer();
+  const [menuWidth, setMenuWidth] = useState(256);
+  const [drawerWidth, setDrawerWidth] = useState(600);
   const {
     isOpen,
     isExpanded,
@@ -63,6 +58,7 @@ const DocumentationDrawer = () => {
     initialIsOpen: false,
     initialIsExpanded: false,
     onToggleDrawer: setIsOpenContext,
+    setDrawerWidth,
   });
   // useHelpsQuery();
   const [textSearchTerm, setTextSearchTerm] = useState("");
@@ -71,21 +67,20 @@ const DocumentationDrawer = () => {
   const [debouncedDocSearchTerm] = useDebounce(docSearchTerm, 500);
   const [searchMode, setSearchMode] = useState<SearchModeType>("onText");
   const [adminMode, setAdminMode] = useState(false);
-  const [documentationContent, setDocumentationContent] = useState("");
+  const [documentationContent, setDocumentationContent] =
+    useState<MarkdownVisualizerProps>();
+
+  const [documentUrlID, setDocumentUrlID] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
-  // const { data, loading: loadingQuery, error } = useQuery(testQueryGraphQL);
-  // console.log(data);
-  const [menuWidth, setMenuWidth] = useState(256);
-  const [drawerWidth, setDrawerWidth] = useState(600);
 
   useEffect(() => {
-    if (isOpen && !documentationContent) {
+    if (isOpen && !documentationContent && jwt) {
       fetchDocumentContentCurrentPage(pathname);
     }
-  }, [isOpen, pathname, documentationContent]);
+  }, [isOpen, pathname, documentationContent, jwt]);
 
   useEffect(() => {
     if (searchMode === "onDocuments" && debouncedDocSearchTerm) {
@@ -107,23 +102,26 @@ const DocumentationDrawer = () => {
       const HelpsResponse = await axios.post("/api/helpers", args, {
         method: "POST",
         headers: {
-          Authorization: `${token}`,
+          Authorization: `${jwt}`,
         },
       });
 
-      const data: HelpsQuery = HelpsResponse.data;
-      const documentData = data.helps[0];
-      console.log(documentData);
+      const HelpData: HelpsQuery = HelpsResponse.data;
+      const documentData = HelpData.helps[0];
+
       if (!documentData) {
         throw new Error("No se encontró el ID del documento");
       }
-      const response = await axios.post("/api/documentation/export-document", {
+      const response = await axios.post("/api/documentation/document-info", {
         id: documentData.outlineId,
       });
-      setDocumentationContent(response.data.data);
+      const documentInfo: MarkdownVisualizerProps = response.data;
+      setDocumentationContent(documentInfo);
+      setDocumentUrlID(documentData.outlineId);
     } catch (error) {
-      console.error("Error loading documentation:", error);
-      setDocumentationContent("## No existe documentación para esta página");
+      setDocumentationContent({
+        markdown_text: "## No existe documentación para esta página",
+      });
     } finally {
       setLoading(false);
     }
@@ -132,13 +130,14 @@ const DocumentationDrawer = () => {
   const fetchDocumentContentGetOutline = async (id: string) => {
     setLoading(true);
     try {
-      const response = await axios.post("/api/documentation/export-document", {
+      const response = await axios.post("/api/documentation/document-info", {
         id,
       });
-      setDocumentationContent(response.data.data);
+      setDocumentationContent(response.data);
     } catch (error) {
-      console.error("Error loading documentation:", error);
-      setDocumentationContent("## Error al cargar la documentación");
+      setDocumentationContent({
+        markdown_text: "## No existe documentación para esta página",
+      });
     } finally {
       setLoading(false);
     }
@@ -152,7 +151,6 @@ const DocumentationDrawer = () => {
       });
       setSearchResults(response.data.data || []);
     } catch (error) {
-      console.error("Error searching documents:", error);
       setSearchResults([]);
     } finally {
       setLoadingSearch(false);
@@ -213,6 +211,7 @@ const DocumentationDrawer = () => {
         setIsOpen={toggleMenu}
         menuWidth={menuWidth}
         onItemClick={handleMenuItemClick}
+        currentDocumentId={documentationContent?.data?.id}
       />
       <div
         className="flex flex-col h-full transition-transform duration-75 ease-in-out relative"
@@ -339,7 +338,8 @@ const DocumentationDrawer = () => {
                 <SkeletonMarkdown />
               ) : (
                 <MarkdownVisualizer
-                  content={documentationContent}
+                  markdown_text={documentationContent?.markdown_text}
+                  data={documentationContent?.data}
                   search={debouncedTextSearchTerm}
                 />
               )}

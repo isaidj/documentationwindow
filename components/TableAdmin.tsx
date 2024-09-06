@@ -144,14 +144,14 @@ const TableAdmin: React.FC<TableAdminProps> = ({
                     className="w-full"
                   />
                 ) : (
-                  <a
-                    href={row.url}
-                    className="text-blue-500 hover:underline"
-                    target="_blank"
+                  <span
+                    // href={row.url}
+                    // target="_blank"
+                    className=""
                     rel="noopener noreferrer"
                   >
                     {row.url}
-                  </a>
+                  </span>
                 )}
               </TableCell>
               <TableCell>

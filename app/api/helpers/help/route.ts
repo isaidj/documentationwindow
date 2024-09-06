@@ -25,11 +25,11 @@ const mutationCreateHelp = gql`
   }
 `;
 export async function POST(req: Request) {
-  const token = req.headers.get("Authorization");
+  const jwt = req.headers.get("Authorization");
 
-  if (!token) {
+  if (!jwt) {
     return NextResponse.json(
-      { error: "No authorization token provided" },
+      { error: "No authorization jwt provided" },
       { status: 401 }
     );
   }
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     const response = await publicGraphqlFetcher<{ createHelp: any }>(
       mutationCreateHelp,
       { createInput: newHelp },
-      token
+      jwt
     );
 
     return NextResponse.json(response);
@@ -102,13 +102,13 @@ const queryHelps = gql`
   }
 `;
 export async function GET(req: Request) {
-  const token = req.headers.get("Authorization");
+  const jwt = req.headers.get("Authorization");
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
-  if (!token) {
+  if (!jwt) {
     return NextResponse.json(
-      { error: "No authorization token provided" },
+      { error: "No authorization jwt provided" },
       { status: 401 }
     );
   }
@@ -121,7 +121,7 @@ export async function GET(req: Request) {
     const response = await publicGraphqlFetcher<{ help: Help | null }>(
       queryHelps,
       { helpId: Number(id) },
-      token
+      jwt
     );
 
     if (response.help === null) {
@@ -167,11 +167,11 @@ const mutationHelps = gql`
 `;
 
 export async function PATCH(req: Request) {
-  const token = req.headers.get("Authorization");
+  const jwt = req.headers.get("Authorization");
 
-  if (!token) {
+  if (!jwt) {
     return NextResponse.json(
-      { error: "No authorization token provided" },
+      { error: "No authorization jwt provided" },
       { status: 401 }
     );
   }
@@ -213,7 +213,7 @@ export async function PATCH(req: Request) {
           state: updateInput.state,
         },
       },
-      token
+      jwt
     );
 
     return NextResponse.json(response);

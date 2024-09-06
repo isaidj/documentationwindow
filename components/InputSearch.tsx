@@ -79,30 +79,6 @@ const InputSearch: React.FC<InputSearchProps> = ({
           }`}
         />
       </div>
-      <Button
-        variant="outline"
-        size="icon"
-        className="text-gray-600 hover:text-indigo-600 hover:border-indigo-300"
-      >
-        <SlidersHorizontal className="h-4 w-4" />
-        <span className="sr-only">Filtrar</span>
-      </Button>
-      {/* <Button
-        variant="outline"
-        size="icon"
-        className="text-gray-600 hover:text-indigo-600 hover:border-indigo-300"
-      >
-        <LayoutGrid className="h-4 w-4" />
-        <span className="sr-only">Vista de cuadrícula</span>
-      </Button> */}
-      {/* <Button
-        variant="outline"
-        size="icon"
-        className="text-gray-600 hover:text-indigo-600 hover:border-indigo-300"
-      >
-        <Menu className="h-4 w-4" />
-        <span className="sr-only">Vista de lista</span>
-      </Button> */}
     </div>
   );
 };

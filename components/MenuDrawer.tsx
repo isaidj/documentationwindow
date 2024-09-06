@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { DocumentItem, ResponseData } from "@/types/InterfaceMenuStructure";
@@ -15,17 +13,23 @@ interface MenuDrawerProps {
   setIsOpen: (isOpen: boolean) => void;
   menuWidth: number;
   onItemClick: (documentId: string) => void;
+  currentDocumentId?: string;
 }
 
 const MenuItemComponent: React.FC<{
   item: DocumentItem;
+  currentDocumentId?: string;
   depth: number;
   onItemClick: (documentId: string) => void;
-}> = React.memo(({ item, depth, onItemClick }) => {
-  const [isOpen, setIsOpen] = useState(false);
+}> = React.memo(({ item, depth, currentDocumentId, onItemClick }) => {
+  const [isOpen, setIsOpen] = useState(item.isOpen || false);
   const [showTooltip, setShowTooltip] = useState(false);
   const { pathname } = useDocumentationDrawer();
   const titleRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    setIsOpen(item.isOpen || false);
+  }, [item.isOpen]);
 
   const handleItemClick = useCallback(
     (e: React.MouseEvent) => {
@@ -56,15 +60,15 @@ const MenuItemComponent: React.FC<{
       window.removeEventListener("resize", checkTextOverflow);
     };
   }, [item.title]);
+  const isActive = item.id === currentDocumentId;
 
+  console.log("isActive", isActive);
   return (
     <div className="w-full">
       <div
         className={cn(
           "flex relative items-center justify-between p-2 cursor-pointer rounded-md transition-colors duration-200 ease-in-out",
-          pathname === item.title
-            ? "bg-primary/10 text-primary"
-            : "hover:bg-gray-100 hover:text-indigo-600",
+          isActive ? "text-indigo-600 underline" : "hover:bg-gray-100",
           depth === 0 && "font-medium"
         )}
         style={{ paddingLeft: `${(depth + 1) * 0.75}rem` }}
@@ -96,7 +100,7 @@ const MenuItemComponent: React.FC<{
               {showTooltip && (
                 <Tooltip.Portal>
                   <Tooltip.Content
-                    className="bg-popover p-2 rounded-md shadow-md border text-popover-foreground z-50 max-w-xs"
+                    className="bg-white  p-2 rounded-md shadow-md border text-popover-foreground z-50 max-w-xs"
                     side="right"
                     sideOffset={5}
                   >
@@ -138,6 +142,7 @@ const MenuItemComponent: React.FC<{
               item={child}
               depth={depth + 1}
               onItemClick={onItemClick}
+              currentDocumentId={currentDocumentId}
             />
           ))}
         </div>
@@ -175,28 +180,55 @@ const SkeletonLoader: React.FC = () => {
 };
 
 const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
-  ({ isOpen, setIsOpen, menuWidth, onItemClick }) => {
+  ({ isOpen, setIsOpen, menuWidth, onItemClick, currentDocumentId }) => {
     const [loading, setLoading] = useState(false);
     const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const { token } = useAuth();
+    const { jwt } = useAuth();
+
+    const findAndOpenMenuItem = useCallback(
+      (items: DocumentItem[], targetId: string): boolean => {
+        for (const item of items) {
+          if (item.id === targetId) {
+            item.isOpen = true;
+            return true;
+          }
+          if (item.children.length > 0) {
+            const found = findAndOpenMenuItem(item.children, targetId);
+            if (found) {
+              item.isOpen = true;
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      []
+    );
+
     const fetchMenu = useCallback(async () => {
       setLoading(true);
       setError(null);
       try {
         const response = await axios.post<ResponseData>(
           "/api/documentation/collections-documents",
-          {},
+          {
+            idCurrentPage: currentDocumentId,
+          },
           {
             headers: {
               "Content-Type": "application/json",
-              Authorization: `${token}`,
+              Authorization: `${jwt}`,
             },
           }
         );
         const data = response.data;
         if (Array.isArray(data.data)) {
-          setMenuContent(data.data);
+          const newMenuContent = data.data;
+          if (currentDocumentId) {
+            findAndOpenMenuItem(newMenuContent, currentDocumentId);
+          }
+          setMenuContent(newMenuContent);
         } else {
           throw new Error("Invalid response format");
         }
@@ -211,13 +243,13 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
       } finally {
         setLoading(false);
       }
-    }, []);
+    }, [currentDocumentId, jwt, findAndOpenMenuItem]);
 
     useEffect(() => {
-      if (isOpen && menuContent.length === 0 && !error) {
+      if (isOpen && (menuContent.length === 0 || currentDocumentId)) {
         fetchMenu();
       }
-    }, [isOpen, menuContent, fetchMenu, error]);
+    }, [isOpen, menuContent.length, currentDocumentId, fetchMenu]);
 
     const handleRetry = () => {
       fetchMenu();
@@ -255,6 +287,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
                   item={item}
                   depth={0}
                   onItemClick={onItemClick}
+                  currentDocumentId={currentDocumentId}
                 />
               ))
             ) : (

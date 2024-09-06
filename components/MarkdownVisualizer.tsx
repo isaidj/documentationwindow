@@ -3,8 +3,13 @@ import ReactMarkdown from "react-markdown";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
-interface MarkdownVisualizerProps {
-  content: string;
+export interface MarkdownVisualizerProps {
+  markdown_text?: string;
+  data?: {
+    title?: string;
+    id: string;
+  };
+
   search?: string;
 }
 
@@ -13,7 +18,11 @@ type CustomComponentProps = {
   [key: string]: any;
 };
 
-const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
+const MarkdownVisualizer = ({
+  markdown_text,
+  data,
+  search,
+}: MarkdownVisualizerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
@@ -163,7 +172,12 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
           );
         }
         return (
-          <a className="text-blue-600 hover:underline" href={href} {...props}>
+          <a
+            className="text-blue-600 hover:underline"
+            href={href}
+            target="_blank"
+            {...props}
+          >
             {highlightText(children)}
           </a>
         );
@@ -208,6 +222,12 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
           {highlightText(children)}
         </td>
       ),
+      mark: ({ children, ...props }: CustomComponentProps) => (
+        <mark className="bg-yellow-200" {...props}>
+          {children}
+        </mark>
+      ),
+      //salto de linea
     }),
     [highlightText]
   );
@@ -215,11 +235,12 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
   return (
     <div className="relative markdown-content">
       <div ref={containerRef} className="mb-16">
+        <h1 className="text-4xl font-bold mb-8">{data?.title}</h1>
         <ReactMarkdown
           components={customComponents}
           remarkPlugins={[remarkGfm]}
         >
-          {content}
+          {markdown_text}
         </ReactMarkdown>
       </div>
       {search && (

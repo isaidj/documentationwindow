@@ -4,7 +4,7 @@ import { setContext } from "@apollo/client/link/context";
 import { useAuth } from "@/context/AuthContext";
 
 export const useApolloClient = () => {
-  const { token } = useAuth();
+  const { jwt } = useAuth();
 
   return useMemo(() => {
     const httpLink = createHttpLink({
@@ -15,7 +15,7 @@ export const useApolloClient = () => {
       return {
         headers: {
           ...headers,
-          authorization: token ? `Bearer ${token}` : "",
+          authorization: jwt ? `Bearer ${jwt}` : "",
         },
       };
     });
@@ -24,5 +24,5 @@ export const useApolloClient = () => {
       link: authLink.concat(httpLink),
       cache: new InMemoryCache(),
     });
-  }, [token]);
+  }, [jwt]);
 };

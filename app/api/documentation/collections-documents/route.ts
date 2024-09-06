@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 const API_KEY_GETOUTLINE = process.env.API_KEY_GETOUTLINE;
 const ID_COLLECTIONS_DOCUMENTS = process.env.ID_COLLECTIONS_DOCUMENTS;
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // const req = await request.json();
+    // const { idCurrentPage } = req;
     const response = await fetch(
       "https://app.getoutline.com/api/collections.documents",
       {

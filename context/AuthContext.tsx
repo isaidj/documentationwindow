@@ -9,7 +9,7 @@ import React, {
 import Cookies from "js-cookie";
 
 interface AuthContextType {
-  token: string | null;
+  jwt: string | null;
   loading: boolean;
   error: string | null;
   login: () => Promise<void>;
@@ -18,24 +18,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const FIXED_TOKEN = "a5015e1f-c515-4cf9-b5ca-763dfb380773";
+// const FIXED_TOKEN = "a5015e1f-c515-4cf9-b5ca-763dfb380773";
 const TOKEN_COOKIE_NAME = "auth_token";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const [jwt, setJwt] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const login = async () => {
+    console.log("login");
+    if (!token) {
+      return;
+    }
+    console.log("login with token", token);
     setLoading(true);
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: FIXED_TOKEN,
+          Authorization: token,
         },
       });
 
@@ -44,10 +50,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       const data = await response.json();
-      const newToken = data.signInByUserKey.token;
+      const newJwt = data.signInByUserKey.token;
 
-      setToken(newToken);
-      Cookies.set(TOKEN_COOKIE_NAME, newToken, {
+      setJwt(newJwt);
+      Cookies.set(TOKEN_COOKIE_NAME, newJwt, {
         expires: 7,
         secure: true,
         sameSite: "strict",
@@ -62,9 +68,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = Cookies.get(TOKEN_COOKIE_NAME);
-      if (storedToken) {
-        setToken(storedToken);
+      const storedJwt = Cookies.get(TOKEN_COOKIE_NAME);
+      if (storedJwt) {
+        setJwt(storedJwt);
       } else {
         await login();
       }
@@ -72,14 +78,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     };
 
     initializeAuth();
+  }, [token]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === "token") {
+        setToken(event.data.token);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   const isLoggedIn = useCallback(() => {
-    return !!token;
-  }, [token]);
+    return !!jwt;
+  }, [jwt]);
 
   const value = {
-    token,
+    jwt,
     loading,
     error,
     login,

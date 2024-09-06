@@ -4,12 +4,14 @@ interface UseDocumentationDrawerControlsProps {
   initialIsOpen: boolean;
   initialIsExpanded: boolean;
   onToggleDrawer: (isOpen: boolean) => void;
+  setDrawerWidth: (width: number) => void;
 }
 
 export const useDocumentationDrawerControls = ({
   initialIsOpen,
   initialIsExpanded,
   onToggleDrawer,
+  setDrawerWidth,
 }: UseDocumentationDrawerControlsProps) => {
   const [isOpen, setIsOpen] = useState(initialIsOpen);
   const [isExpanded, setIsExpanded] = useState(initialIsExpanded);
@@ -22,6 +24,9 @@ export const useDocumentationDrawerControls = ({
       }
       if (event.data && event.data.type === "toggleExpand") {
         setIsExpanded(event.data.isOpen);
+      }
+      if (event.data && event.data.type === "iframeWidth") {
+        setDrawerWidth(event.data.width);
       }
     };
 
