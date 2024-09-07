@@ -11,3 +11,19 @@ body {
     text-wrap: balance;
   }
 }
+
+.fade-in {
+  animation: fadeIn 0.5s;
+}
+.fade-in-short {
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,10 @@
+query Helps($where: FindHelpWhere) {
+  helps(where: $where) {
+    id
+    description
+    url
+    outlineId
+    createDate
+    state
+  }
+}

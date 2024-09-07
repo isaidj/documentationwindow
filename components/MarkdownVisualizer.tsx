@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import remarkGfm from "remark-gfm";
 
-interface MarkdownVisualizerProps {
-  content: string;
+export interface MarkdownVisualizerProps {
+  markdown_text?: string;
+  data?: {
+    title?: string;
+    id: string;
+  };
+
   search?: string;
 }
 
@@ -12,10 +18,21 @@ type CustomComponentProps = {
   [key: string]: any;
 };
 
-const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
+const MarkdownVisualizer = ({
+  markdown_text,
+  data,
+  search,
+}: MarkdownVisualizerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
+
+  const normalizeText = (text: string): string => {
+    return text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  };
 
   useEffect(() => {
     if (search && containerRef.current) {
@@ -50,32 +67,42 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
 
   const highlightText = (text: React.ReactNode): React.ReactNode => {
     if (!search || typeof text !== "string") return text;
-    const parts = text.split(new RegExp(`(${search})`, "gi"));
-    return parts.map((part, i) =>
-      part.toLowerCase() === search?.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-200">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
+    const normalizedSearch = normalizeText(search);
+    const parts = normalizeText(text).split(normalizedSearch);
+    let lastIndex = 0;
+    return parts.map((part, i) => {
+      if (i === 0) {
+        lastIndex = part.length;
+        return text.slice(0, part.length);
+      }
+      const start = lastIndex;
+      const end = lastIndex + normalizedSearch.length;
+      lastIndex = end + part.length;
+      return (
+        <>
+          <mark key={i} className="bg-yellow-200">
+            {text.slice(start, end)}
+          </mark>
+          {text.slice(end, lastIndex)}
+        </>
+      );
+    });
   };
 
   const customComponents = useMemo(
     () => ({
       h1: ({ children, ...props }: CustomComponentProps) => (
-        <h1 className="text-2xl font-bold mb-4" {...props}>
+        <h1 className="text-3xl font-bold mt-8 mb-4" {...props}>
           {highlightText(children)}
         </h1>
       ),
       h2: ({ children, ...props }: CustomComponentProps) => (
-        <h2 className="text-xl font-semibold mb-3" {...props}>
+        <h2 className="text-2xl font-semibold mt-6 mb-3" {...props}>
           {highlightText(children)}
         </h2>
       ),
       h3: ({ children, ...props }: CustomComponentProps) => (
-        <h3 className="text-lg font-medium mb-2" {...props}>
+        <h3 className="text-xl font-medium mt-4 mb-2" {...props}>
           {highlightText(children)}
         </h3>
       ),
@@ -95,7 +122,7 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
         </ol>
       ),
       li: ({ children, ...props }: CustomComponentProps) => (
-        <li className="mb-1" {...props}>
+        <li className="mb-2" {...props}>
           {highlightText(children)}
         </li>
       ),
@@ -107,13 +134,21 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
           {highlightText(children)}
         </blockquote>
       ),
-      pre: ({ children, ...props }: CustomComponentProps) => (
+      code: ({ children, ...props }: CustomComponentProps) => (
         <code
-          className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap"
+          className="bg-gray-100 rounded p-1 whitespace-pre-wrap"
           {...props}
         >
           {highlightText(children)}
         </code>
+      ),
+      pre: ({ children, ...props }: CustomComponentProps) => (
+        <pre
+          className="bg-gray-100 rounded p-4 my-4 overflow-x-auto"
+          {...props}
+        >
+          {highlightText(children)}
+        </pre>
       ),
       strong: ({ children, ...props }: CustomComponentProps) => (
         <strong className="font-semibold" {...props}>
@@ -121,7 +156,7 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
         </strong>
       ),
       img: ({ src, alt, ...props }: CustomComponentProps) => (
-        <img src={src} alt={alt} className="my-4" {...props} />
+        <img src={src} alt={alt} className="my-4 max-w-full" {...props} />
       ),
       a: ({ href, children, ...props }: CustomComponentProps) => {
         if (
@@ -137,22 +172,79 @@ const MarkdownVisualizer = ({ content, search }: MarkdownVisualizerProps) => {
           );
         }
         return (
-          <a className="text-blue-600 hover:underline" href={href} {...props}>
+          <a
+            className="text-blue-600 hover:underline"
+            href={href}
+            target="_blank"
+            {...props}
+          >
             {highlightText(children)}
           </a>
         );
       },
+      // Nuevos componentes para las tablas
+      table: ({ children, ...props }: CustomComponentProps) => (
+        <table
+          className="min-w-full border-collapse border border-gray-300 my-4"
+          {...props}
+        >
+          {children}
+        </table>
+      ),
+      thead: ({ children, ...props }: CustomComponentProps) => (
+        <thead className="bg-gray-100" {...props}>
+          {children}
+        </thead>
+      ),
+      tbody: ({ children, ...props }: CustomComponentProps) => (
+        <tbody className="bg-white" {...props}>
+          {children}
+        </tbody>
+      ),
+      tr: ({ children, ...props }: CustomComponentProps) => (
+        <tr className="border-b border-gray-300" {...props}>
+          {children}
+        </tr>
+      ),
+      th: ({ children, ...props }: CustomComponentProps) => (
+        <th
+          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          {...props}
+        >
+          {highlightText(children)}
+        </th>
+      ),
+      td: ({ children, ...props }: CustomComponentProps) => (
+        <td
+          className="px-6 py-4 whitespace-pre-wrap text-sm text-gray-500"
+          {...props}
+        >
+          {highlightText(children)}
+        </td>
+      ),
+      mark: ({ children, ...props }: CustomComponentProps) => (
+        <mark className="bg-yellow-200" {...props}>
+          {children}
+        </mark>
+      ),
+      //salto de linea
     }),
     [highlightText]
   );
 
   return (
-    <div className="relative">
-      <div ref={containerRef}>
-        <ReactMarkdown components={customComponents}>{content}</ReactMarkdown>
+    <div className="relative markdown-content">
+      <div ref={containerRef} className="mb-16">
+        <h1 className="text-4xl font-bold mb-8">{data?.title}</h1>
+        <ReactMarkdown
+          components={customComponents}
+          remarkPlugins={[remarkGfm]}
+        >
+          {markdown_text}
+        </ReactMarkdown>
       </div>
       {search && (
-        <div className="fixed bottom-4 right-4 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">
+        <div className="fixed bottom-4 left-4 bg-white p-2 rounded-lg shadow-md flex items-center space-x-2">
           {totalMatches > 0 ? (
             <>
               <button

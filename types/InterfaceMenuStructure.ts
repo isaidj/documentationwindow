@@ -8,5 +8,7 @@ export interface DocumentItem {
   id: string;
   url: string;
   title: string;
+  icon: string;
   children: DocumentItem[];
+  isOpen?: boolean;
 }

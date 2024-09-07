@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       }
     );
     const data = await response.json();
-    // console.log(data);
+    console.log(data);
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error loading documentation:", error);

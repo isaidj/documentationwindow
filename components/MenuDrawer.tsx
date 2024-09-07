@@ -1,68 +1,158 @@
-"use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { DocumentItem, ResponseData } from "@/types/InterfaceMenuStructure";
-import { ChevronDown, FileText } from "lucide-react";
+import { ChevronDown, FileText, Folder } from "lucide-react";
 import { useDocumentationDrawer } from "@/context/DocumentationDrawerContext";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { cn } from "@/libs/utils";
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 interface MenuDrawerProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   menuWidth: number;
+  onItemClick: (documentId: string) => void;
+  currentDocumentId?: string;
 }
 
 const MenuItemComponent: React.FC<{
   item: DocumentItem;
+  currentDocumentId?: string;
   depth: number;
-}> = React.memo(({ item, depth }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  onItemClick: (documentId: string) => void;
+}> = React.memo(({ item, depth, currentDocumentId, onItemClick }) => {
+  const [isOpen, setIsOpen] = useState(item.isOpen || false);
+  const [showTooltip, setShowTooltip] = useState(false);
   const { pathname } = useDocumentationDrawer();
+  const titleRef = useRef<HTMLSpanElement>(null);
 
-  const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), []);
+  useEffect(() => {
+    setIsOpen(item.isOpen || false);
+  }, [item.isOpen]);
 
+  const handleItemClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onItemClick(item.id);
+    },
+    [item.id, onItemClick]
+  );
+
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    const checkTextOverflow = () => {
+      if (titleRef.current) {
+        setShowTooltip(
+          titleRef.current.scrollWidth > titleRef.current.clientWidth
+        );
+      }
+    };
+
+    checkTextOverflow();
+    window.addEventListener("resize", checkTextOverflow);
+
+    return () => {
+      window.removeEventListener("resize", checkTextOverflow);
+    };
+  }, [item.title]);
+  const isActive = item.id === currentDocumentId;
+
+  console.log("isActive", isActive);
   return (
-    <div className=" ">
+    <div className="w-full">
       <div
-        className={`flex relative items-center justify-between p-2 pl-0 hover:bg-gray-200 cursor-pointer rounded transition-colors duration-200 ease-in-out ${
-          pathname === item.title ? "bg-blue-200" : ""
-        }`}
-        style={{ paddingLeft: `${(depth + 1) * 0.5}rem` }}
-        onClick={toggleOpen}
+        className={cn(
+          "flex relative items-center justify-between p-2 cursor-pointer rounded-md transition-colors duration-200 ease-in-out",
+          isActive ? "text-indigo-600 underline" : "hover:bg-gray-100",
+          depth === 0 && "font-medium"
+        )}
+        style={{ paddingLeft: `${(depth + 1) * 0.75}rem` }}
+        onClick={handleItemClick}
       >
-        {/* <div className=" absolute border-l-[1px] border-cyan-700 h-full"></div> */}
-        <div className="flex items-center flex-grow">
-          <div className="w-6 flex justify-center ml-1">
-            <FileText size={18} className="text-gray-600" />
+        <div className="flex items-center w-full min-w-0">
+          <div className="w-5 flex-shrink-0 flex justify-center mr-2">
+            {item.children.length > 0 ? (
+              <Folder size={16} className="text-muted-foreground" />
+            ) : (
+              <FileText size={16} className="text-muted-foreground" />
+            )}
           </div>
-          <span className="text-sm font-medium text-gray-700 truncate ">
-            {item.title}
-          </span>
+          <Tooltip.Provider delayDuration={300}>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <span
+                  ref={titleRef}
+                  className={cn(
+                    "text-sm truncate flex-grow mr-2",
+                    pathname === item.title
+                      ? "text-primary"
+                      : "text-foreground hover:text-primary"
+                  )}
+                >
+                  {item.title}
+                </span>
+              </Tooltip.Trigger>
+              {showTooltip && (
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white  p-2 rounded-md shadow-md border text-popover-foreground z-50 max-w-xs"
+                    side="right"
+                    sideOffset={5}
+                  >
+                    {item.title}
+                    <Tooltip.Arrow className="fill-popover" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              )}
+            </Tooltip.Root>
+          </Tooltip.Provider>
         </div>
         {item.children.length > 0 && (
-          <div className="w-6 flex justify-center flex-shrink-0">
-            <div
-              className={`transform transition-transform duration-200 ${
-                isOpen ? "rotate-180" : ""
-              }`}
-            >
-              <ChevronDown size={18} className="text-gray-600" />
-            </div>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-6 h-6 p-0 hover:bg-transparent"
+            onClick={handleToggle}
+          >
+            <ChevronDown
+              size={16}
+              className={cn(
+                "text-muted-foreground transition-transform duration-200",
+                isOpen && "rotate-180"
+              )}
+            />
+          </Button>
         )}
       </div>
-      <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        {item.children.map((child) => (
-          <MenuItemComponent key={child.id} item={child} depth={depth + 1} />
-        ))}
-      </div>
+      {item.children.length > 0 && (
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          {item.children.map((child) => (
+            <MenuItemComponent
+              key={child.id}
+              item={child}
+              depth={depth + 1}
+              onItemClick={onItemClick}
+              currentDocumentId={currentDocumentId}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 });
+
 MenuItemComponent.displayName = "MenuItemComponent";
+
 const SkeletonLoader: React.FC = () => {
   return (
     <div className="p-4">
@@ -90,31 +180,80 @@ const SkeletonLoader: React.FC = () => {
 };
 
 const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
-  ({ isOpen, setIsOpen, menuWidth }) => {
+  ({ isOpen, setIsOpen, menuWidth, onItemClick, currentDocumentId }) => {
     const [loading, setLoading] = useState(false);
     const [menuContent, setMenuContent] = useState<DocumentItem[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const { jwt } = useAuth();
+
+    const findAndOpenMenuItem = useCallback(
+      (items: DocumentItem[], targetId: string): boolean => {
+        for (const item of items) {
+          if (item.id === targetId) {
+            item.isOpen = true;
+            return true;
+          }
+          if (item.children.length > 0) {
+            const found = findAndOpenMenuItem(item.children, targetId);
+            if (found) {
+              item.isOpen = true;
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      []
+    );
 
     const fetchMenu = useCallback(async () => {
       setLoading(true);
+      setError(null);
       try {
         const response = await axios.post<ResponseData>(
-          "http://localhost:3000/api/documentation/collections-documents"
+          "/api/documentation/collections-documents",
+          {
+            idCurrentPage: currentDocumentId,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `${jwt}`,
+            },
+          }
         );
         const data = response.data;
-        setMenuContent(data.data);
+        if (Array.isArray(data.data)) {
+          const newMenuContent = data.data;
+          if (currentDocumentId) {
+            findAndOpenMenuItem(newMenuContent, currentDocumentId);
+          }
+          setMenuContent(newMenuContent);
+        } else {
+          throw new Error("Invalid response format");
+        }
       } catch (error) {
         console.error("Error loading menu:", error);
         setMenuContent([]);
+        if (axios.isAxiosError(error)) {
+          setError(`Failed to load menu: ${error.message}`);
+        } else {
+          setError("An unexpected error occurred while loading the menu");
+        }
       } finally {
         setLoading(false);
       }
-    }, []);
+    }, [currentDocumentId, jwt, findAndOpenMenuItem]);
 
     useEffect(() => {
-      if (isOpen && menuContent.length === 0) {
+      if (isOpen && (menuContent.length === 0 || currentDocumentId)) {
         fetchMenu();
       }
-    }, [isOpen, menuContent.length, fetchMenu]);
+    }, [isOpen, menuContent.length, currentDocumentId, fetchMenu]);
+
+    const handleRetry = () => {
+      fetchMenu();
+    };
 
     return (
       <div
@@ -126,17 +265,41 @@ const MenuDrawer: React.FC<MenuDrawerProps> = React.memo(
       >
         {loading ? (
           <SkeletonLoader />
+        ) : error ? (
+          <div className="p-4 flex flex-col justify-center items-center">
+            <p className="text-red-500 mb-2">{error}</p>
+            <Button
+              onClick={handleRetry}
+              variant="default"
+              size="icon"
+              className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50"
+            >
+              Retry
+            </Button>
+          </div>
         ) : (
           <div className="p-4">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Menu</h2>
-            {menuContent.map((item) => (
-              <MenuItemComponent key={item.id} item={item} depth={0} />
-            ))}
+            {menuContent.length > 0 ? (
+              menuContent.map((item) => (
+                <MenuItemComponent
+                  key={item.id}
+                  item={item}
+                  depth={0}
+                  onItemClick={onItemClick}
+                  currentDocumentId={currentDocumentId}
+                />
+              ))
+            ) : (
+              <p>No menu items available.</p>
+            )}
           </div>
         )}
       </div>
     );
   }
 );
+
 MenuDrawer.displayName = "MenuDrawer";
+
 export default MenuDrawer;
