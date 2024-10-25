@@ -14,6 +14,7 @@ interface AuthContextType {
   error: string | null;
   login: () => Promise<void>;
   isLoggedIn: () => boolean;
+  collectionId?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +27,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [jwt, setJwt] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [collectionId, setCollectionId] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,6 +87,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (event.data && event.data.type === "token") {
         setToken(event.data.token);
       }
+      if (event.data && event.data.type === "collectionId") {
+        setCollectionId(event.data.collectionId);
+      }
     };
 
     window.addEventListener("message", handleMessage);
@@ -101,6 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     error,
     login,
     isLoggedIn,
+    collectionId,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

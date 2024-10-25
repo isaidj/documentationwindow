@@ -46,9 +46,6 @@ export async function POST(req: Request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error loading documentation:", error);
-    return NextResponse.json(
-      { error: "Error loading documentation" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error }, { status: 500 });
   }
 }

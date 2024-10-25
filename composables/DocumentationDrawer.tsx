@@ -41,9 +41,10 @@ import {
 } from "@/domain/graphql";
 import AdminPanel from "./AdminPanel";
 import { useAuth } from "@/context/AuthContext";
+import { SearchRequestBody } from "@/app/api/documentation/search-documents/route";
 
 const DocumentationDrawer = () => {
-  const { jwt, isLoggedIn } = useAuth();
+  const { jwt, isLoggedIn, collectionId } = useAuth();
   const { pathname, setIsOpen: setIsOpenContext } = useDocumentationDrawer();
   const [menuWidth, setMenuWidth] = useState(256);
   const [drawerWidth, setDrawerWidth] = useState(600);
@@ -84,7 +85,11 @@ const DocumentationDrawer = () => {
 
   useEffect(() => {
     if (searchMode === "onDocuments" && debouncedDocSearchTerm) {
-      searchDocuments(debouncedDocSearchTerm);
+      searchDocuments({
+        query: debouncedDocSearchTerm,
+        limit: 10,
+        collectionId: collectionId,
+      });
     }
   }, [debouncedDocSearchTerm, searchMode]);
 
@@ -143,11 +148,11 @@ const DocumentationDrawer = () => {
     }
   };
 
-  const searchDocuments = async (query: string) => {
+  const searchDocuments = async (query: SearchRequestBody) => {
     setLoadingSearch(true);
     try {
       const response = await axios.post("/api/documentation/search-documents", {
-        body: { query },
+        body: query,
       });
       setSearchResults(response.data.data || []);
     } catch (error) {

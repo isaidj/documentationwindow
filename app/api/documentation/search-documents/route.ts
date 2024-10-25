@@ -2,14 +2,28 @@ import { NextResponse } from "next/server";
 import SearchResponse from "@/types/InterfaceSearchDocuments";
 
 const API_KEY_GETOUTLINE = process.env.API_KEY_GETOUTLINE;
-const ID_COLLECTIONS_DOCUMENTS = process.env.ID_COLLECTIONS_DOCUMENTS;
-
+export interface SearchRequestBody {
+  query: string;
+  limit: number;
+  collectionId?: string;
+}
 export async function POST(request: Request) {
   try {
     const req = await request.json();
     console.log("req:", req);
     const query = req.body.query;
-    console.log(query);
+    const collectionId = req.body.collectionId;
+
+    // Construir el cuerpo de la solicitud de forma dinámica
+    const requestBody: SearchRequestBody = {
+      query: query,
+      limit: 10,
+    };
+
+    // Solo incluir `collectionId` si existe
+    if (collectionId) {
+      requestBody.collectionId = collectionId;
+    }
 
     const documents_response = await fetch(
       "https://app.getoutline.com/api/documents.search",
@@ -19,11 +33,7 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${API_KEY_GETOUTLINE}`,
         },
-        body: JSON.stringify({
-          query: query,
-          collectionId: ID_COLLECTIONS_DOCUMENTS,
-          limit: 10,
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
